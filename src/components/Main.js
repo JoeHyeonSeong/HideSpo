@@ -12,6 +12,7 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
+import Slider from '@material-ui/core/Slider';
 
 const styles = {
     root: {
@@ -48,6 +49,15 @@ class Main extends Component {
         const { classes } = this.props;
         return (
             <div className={classes.root}>
+                <Slider
+                    defaultValue={1}
+                    //getAriaValueText={valuetext}
+                    aria-labelledby="discrete-slider"
+                    valueLabelDisplay="auto"
+                    step={1}
+                    min={0}
+                    max={2}
+                />
                 <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="Standard" />
                 <Button variant="contained" color="primary" onClick={this.handleClickOpen}>Search</Button>
                 <Button variant="contained" color="primary" onClick={this.htmlTest}>Test</Button>
