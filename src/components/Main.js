@@ -24,21 +24,25 @@ const styles = {
 class Main extends Component {
     state = {
         open: false,
-        movieDatas: []
+        movieDatas: [],
+        whiteList:[],
     }
     searchTitle='';
     bodyText='';
     componentDidMount() {
         try {
-            chrome.storage.sync.get(['movieDatas'],
+            chrome.storage.sync.get(['movieDatas','whiteList'],
                 items => {
+                    let mv=(typeof items.movieDatas=="undefined")? []:items.movieDatas;
+                    let wh=(typeof items.whiteList=="undefined")? []:items.whiteList;
                     this.setState({
-                        movieDatas: items.movieDatas
-                    });
+                        movieDatas: mv,
+                        whiteList:wh
+                    },()=>{console.log(this.state.whiteList)});
                 });
         }
         catch {
-            console.log('no movie data');
+            console.log('fail to load data');
         }
 
 
@@ -58,9 +62,10 @@ class Main extends Component {
                     min={0}
                     max={2}
                 />
-                <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="Standard" />
+                <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="영화제목" />
                 <Button variant="contained" color="primary" onClick={this.handleClickOpen}>Search</Button>
                 <Button variant="contained" color="primary" onClick={this.htmlTest}>Test</Button>
+                <Button variant="contained" color="primary" onClick={this.addWhiteList}>WhiteList</Button>
                 <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
                 <TableContainer component={Paper}>
                     <Table aria-label="simple table">
@@ -115,6 +120,43 @@ class Main extends Component {
         chrome.storage.sync.set({movieDatas:newDatas});
     }
 
+    addWhiteList = () => {
+        chrome.tabs.getSelected(null, tabs => {
+            console.log(tabs);
+            let url = this.trimUrl(tabs.url);
+            let newDatas = this.state.whiteList.concat(url);
+            this.setState({
+                whiteList: newDatas
+            });
+            chrome.storage.sync.set({ 'whiteList': newDatas });
+        });
+    }
+
+
+    deleteWhiteList = () => {
+        chrome.tabs.getSelected(null, tabs => {
+            let url = this.trimUrl(tabs.url);
+            let newDatas = this.state.whiteList.filter(info => info !== url);
+            this.setState({
+                whiteList: newDatas
+            });
+            chrome.storage.sync.set({ 'whiteList': newDatas });
+        });
+    }
+
+    trimUrl = (url) => {
+        let i = 0;
+        let cnt = 0;
+        for (; i < url.length; i++) {
+            if (url[i] === '/') {
+                cnt++;
+                if (cnt === 3)
+                    break;
+            }
+        }
+        return url.substring(0, i);
+    }
+
     htmlTest=()=>{
         chrome.tabs.executeScript({
             code:'document.querySelector("body").innerText'
@@ -132,9 +174,11 @@ class Main extends Component {
     }
 
     handleClickOpen = () => {
-        this.setState({
-            open: true
-        })
+        if (this.searchTitle.length != 0) {
+            this.setState({
+                open: true
+            })
+        }
     };
 
     handleChange = (e) => {
