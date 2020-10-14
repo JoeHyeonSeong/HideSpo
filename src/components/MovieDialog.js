@@ -24,7 +24,7 @@ class MovieDialog extends Component {
         movieData: []
     }
 
-    componentDidUpdate(prevProps, prevState){
+    componentDidUpdate(prevProps, prevState) {
         if (prevProps.open != this.props.open && this.props.open) {
             this.searchMovie();
         }
@@ -76,21 +76,29 @@ class MovieDialog extends Component {
     }
 
     searchMovie = async () => {
-        console.log("search: "+this.props.title)
+        console.log("search: " + this.props.title)
         let basicUrl = "http://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp?"
             + "collection=kmdb_new2&ServiceKey=M9RA61A20074QJD5W74X&use=극장용&detail=N&sort=prodYear,1&title=";
         let response = await fetch(basicUrl + this.props.title)
         if (response.ok) {
             let json = await response.json();
             let results = json.Data[0].Result;
-            for (let r of results) {
-                console.log(r);
-                r.title = r.title.replace(/ !HS | !HE /gi, '');
-                console.log(r.title);
+            if (typeof results === 'undefined') {
+                this.setState({
+                    movieData: []
+                });
             }
-            this.setState({
-                movieData: json.Data[0].Result
-            });
+            else {
+                for (let r of results) {
+                    console.log(r);
+                    r.title = r.title.replace(/ !HS | !HE /gi, '');
+                    console.log(r.title);
+                }
+                this.setState({
+                    movieData: json.Data[0].Result
+                });
+            }
+
         }
     }
 }
