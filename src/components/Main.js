@@ -21,31 +21,47 @@ const styles = {
     },
 };
 
+
+
 class Main extends Component {
     state = {
         open: false,
         movieDatas: [],
-        whiteList:[],
+        onWhiteList:false
     }
-    searchTitle='';
-    bodyText='';
+    searchTitle = '';
+    bodyText = '';
     componentDidMount() {
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse)=>{
+            if (request.message === "whiteList") {
+                this.setState({ onWhiteList: request.onWhiteList });
+            }
+        });
+
         try {
-            chrome.storage.sync.get(['movieDatas','whiteList'],
+            chrome.storage.sync.get(['movieDatas'],
                 items => {
                     let mv=(typeof items.movieDatas=="undefined")? []:items.movieDatas;
-                    let wh=(typeof items.whiteList=="undefined")? []:items.whiteList;
                     this.setState({
                         movieDatas: mv,
-                        whiteList:wh
-                    },()=>{console.log(this.state.whiteList)});
+                    });
                 });
         }
         catch {
             console.log('fail to load data');
         }
-
-
+        try {
+            chrome.tabs.getSelected(null, tabs => {
+                let url = tabs.url;
+                chrome.runtime.sendMessage({
+                    message: 'whiteListCheck',
+                    url: url
+                });
+            });
+        }
+        catch {
+            console.log("fail to access");
+        }
     }
 
     render() {
@@ -64,8 +80,9 @@ class Main extends Component {
                 />
                 <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="영화제목" />
                 <Button variant="contained" color="primary" onClick={this.handleClickOpen}>Search</Button>
-                <Button variant="contained" color="primary" onClick={this.htmlTest}>Test</Button>
-                <Button variant="contained" color="primary" onClick={this.addWhiteList}>WhiteList</Button>
+                <Button variant="contained" color="primary" onClick={this.toggleWhiteList}>
+                    {this.state.onWhiteList ? '화이트리스트 제거' : '화이트리스트 추가'}
+                </Button>
                 <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
                 <TableContainer component={Paper}>
                     <Table aria-label="simple table">
@@ -120,50 +137,21 @@ class Main extends Component {
         chrome.storage.sync.set({movieDatas:newDatas});
     }
 
-    addWhiteList = () => {
+    toggleWhiteList = () => {
         chrome.tabs.getSelected(null, tabs => {
-            console.log(tabs);
-            let url = this.trimUrl(tabs.url);
-            let newDatas = this.state.whiteList.concat(url);
-            this.setState({
-                whiteList: newDatas
-            });
-            chrome.storage.sync.set({ 'whiteList': newDatas });
-        });
-    }
-
-
-    deleteWhiteList = () => {
-        chrome.tabs.getSelected(null, tabs => {
-            let url = this.trimUrl(tabs.url);
-            let newDatas = this.state.whiteList.filter(info => info !== url);
-            this.setState({
-                whiteList: newDatas
-            });
-            chrome.storage.sync.set({ 'whiteList': newDatas });
-        });
-    }
-
-    trimUrl = (url) => {
-        let i = 0;
-        let cnt = 0;
-        for (; i < url.length; i++) {
-            if (url[i] === '/') {
-                cnt++;
-                if (cnt === 3)
-                    break;
+            let url = tabs.url;
+            if (this.state.onWhiteList) {
+                chrome.runtime.sendMessage({
+                    message: 'whiteListDelete',
+                    url:url
+                });
             }
-        }
-        return url.substring(0, i);
-    }
-
-    htmlTest=()=>{
-        chrome.tabs.executeScript({
-            code:'document.querySelector("body").innerText'
-        }, function (result) {
-            this.bodyText = result[0];
-            console.log(result);
-            console.log(this.bodyText);
+            else {
+                chrome.runtime.sendMessage({
+                    message: 'whiteListAdd',
+                    url:url
+                });
+            }
         });
     }
 
