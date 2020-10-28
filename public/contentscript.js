@@ -346,7 +346,7 @@ markToReplace_text = function (textNode) {
 }
 
 
-   
+   /*
     setInterval(function () {
         console.log('Works!');
         textCache = [];
@@ -355,5 +355,33 @@ markToReplace_text = function (textNode) {
         textCache = [];
         spoilerStringCache = [];
     }, 3000);
-    
+*/
+    zenofunc=function(){
+        console.log('Works!');
+        textCache = [];
+        spoilerStringCache = [];
+        markToReplace_childNodes(document.body);
+        textCache = [];
+        spoilerStringCache = [];
+    }
+
+    //document.addEventListener('DOMNodeInserted', zenofunc);
+
+    MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+
+    var observer = new MutationObserver(function (mutations, observer) {
+        // fired when a mutation occurs
+        console.log(mutations, observer);
+        zenofunc();
+        // ...
+    });
+
+    // define what element should be observed by the observer
+    // and what types of mutations trigger the callback
+    observer.observe(document, {
+        subtree: true,
+        attributes: true,
+        //...
+    });
+
 })

@@ -14,9 +14,9 @@ catch {
 chrome.tabs.onUpdated.addListener(
     function (tabId, changeInfo, tab) {
         try {
-            if (changeInfo.url) {
-                urlChange(trimUrl(changeInfo.url));
-            }
+            chrome.tabs.getSelected(null, tabs => {
+                urlChange(trimUrl(tabs.url));
+            });
         }
         catch {
             console.log("fail to access");
@@ -66,7 +66,9 @@ function urlChange(url) {
         else
             chrome.browserAction.setIcon({ path: "images/icon16.png" });
     }
-    chrome.tabs.executeScript({ file: 'contentscript.js' });
+    if(!onWhiteList){
+        chrome.tabs.executeScript({ file: 'contentscript.js' });
+    }
     chrome.runtime.sendMessage({
         message: 'whiteList',
         onWhiteList: onWhiteList
