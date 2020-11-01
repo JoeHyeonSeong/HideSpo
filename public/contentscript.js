@@ -1,6 +1,5 @@
 console.log("hi");
 chrome.storage.sync.get(['movieDatas'], function (result) {
-
     console.log(result.movieDatas[0].title);
 textCache = [];
 spoilerStringCache= [];
@@ -25,51 +24,6 @@ isNullOrEmpty= function (value) {
             value.length === 0; 
     }
 
-/*getMatchingSpoilerStringInText= function(text) {
-
-    var normalizeLowerText;
-    
-    //normalizeLowerText = text.normalizeString().toLowerCase(); extends 추가했는데 인식 불가
-    normalizeLowerText = text.toLowerCase();
-
-    //there is no letter or number in the text
-    if (isNullOrEmpty(normalizeLowerText.match(NUMBER_OR_LETTER_OUTSIDE_REG_EXP))) {
-        return null;
-    }
-    //console.log("나" + normalizeLowerText);
-    chrome.storage.sync.get(['movieDatas'], function (result) {
-        
-        var spoilerList = result.movieDatas;
-    
-        for (var i = 0; i < spoilerList.length(); i++) {
-            var spoilerString = ""
-            spoilerString = spoilerList[i].title.trim();
-            //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
-            var normalizedLowerSpoilerString = spoilerString;
-            //console.log("3" + normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length);
-            if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
-               
-                if (
-                    (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                    (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                    (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                    (normalizedLowerSpoilerString === normalizeLowerText)) {
-                    //console.log("1" + spoilerList[i].title.trim());
-                    //console.log("2" + spoilerString);
-                    return spoilerString;
-                }
-            } else {
-                var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP, "");
-                var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP, "");
-                if (compareText.includes(compareSpoilerString)) {
-                   // console.log("2" + spoilerString);
-                    return spoilerString;
-                }
-            }
-        }
-        return null;
-    })
-}*/
     String.prototype.replaceAll = function (org, dest) {
         return this.split(org).join(dest);
     }
@@ -164,6 +118,8 @@ markToReplace_childNodes= function(node) {
             child = cn[i];
 
             //NOTE: sometimes the nodename is lowercase
+            if(child===undefined)
+                continue;
             var toLowerchildNodeName = child.nodeName.toLowerCase();
 
             /*if (toLowerchildNodeName === "img") {
@@ -249,13 +205,18 @@ replaceDivIsEnabled= function(node, nodeName) {
             aOrParent = a.parentElement;
         }
         var elementToReplace = aOrParent;
-
+        console.log(a.text);
+        elementToReplace=findTargetParent(a);
+        if(elementToReplace===null)
+            elementToReplace=aOrParent;
+        console.log(elementToReplace);
         if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
             elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
 
             //console.log("2 " + elementToReplace);
             var curUrl = window.location.hostname;
             //console.log(curUrl);
+            /*
             if (curUrl == "www.youtube.com") {
                 //console.log(curUrl+"1212");
                 elementToReplace.parentElement.parentElement.parentElement.parentElement.parentElement.querySelectorAll("img").forEach(function (el) {
@@ -266,6 +227,7 @@ replaceDivIsEnabled= function(node, nodeName) {
                     el.setAttribute("style", "display: none;");
                 });
             }
+            */
             elementToReplace.innerText = "키워드 '"  + replace.alternateText + "' 포함되어있습니다";
             elementToReplace.style.color = "white";
             elementToReplace.setAttribute('needWhite', 'yes');
@@ -290,6 +252,28 @@ replaceDivIsEnabled= function(node, nodeName) {
     }
 }
 
+findTargetParent = function (curNode) {
+    var parentNode=curNode.parentElement;
+    if(parentNode==undefined){
+        return null;
+    }
+    var siblingNodes=parentNode.childNodes;
+    if(curNode.nodeName=="body")
+        return curNode;
+    for(n of siblingNodes){
+        if(n!=curNode&&
+            n.className==curNode.className&&
+            n.nodeName==curNode.nodeName&&
+            n.id==curNode.id&&
+            n.childNodes.length>0){
+            console.log('match');
+            console.log(curNode);
+            return curNode;
+        }
+    }
+    return findTargetParent(parentNode);
+}
+
 markToReplace_text = function (textNode) {
     // console.log(textNode.data);
     var replace = shouldReplaceText(textNode.data);
@@ -301,15 +285,19 @@ markToReplace_text = function (textNode) {
         var textNodeParentElement = textNode.parentElement;
 
         //if the parent is a formatter, we will find the first nonformatter parent, that should be replaced
-        if (TEXT_FORMATTING_ELEMENTS.includes(textNodeParentElement.nodeName)) {
-            var closestNonFormattingParent = textNodeParentElement.closest(NOT_TEXT_FORMATTING_ELEMENTS_STRING);
-            elementToReplace = closestNonFormattingParent;
-        } else {
-            elementToReplace =textNode.parentElement;
+        console.log(textNode.text);
+        elementToReplace=findTargetParent(textNode);
+        if (elementToReplace === null) {
+            if (TEXT_FORMATTING_ELEMENTS.includes(textNodeParentElement.nodeName)) {
+                var closestNonFormattingParent = textNodeParentElement.closest(NOT_TEXT_FORMATTING_ELEMENTS_STRING);
+                elementToReplace = closestNonFormattingParent;
+            } else {
+                elementToReplace = textNode.parentElement;
+            }
         }
         //console.log(elementToReplace);
         if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
-            
+
             elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
             //console.log("1 " + elementToReplace.childNodes[0]);
             
@@ -321,6 +309,7 @@ markToReplace_text = function (textNode) {
             });
             var curUrl = window.location.hostname;
             //console.log(curUrl);
+            /*
             if (curUrl == "www.youtube.com") {
                 
                 
@@ -329,6 +318,7 @@ markToReplace_text = function (textNode) {
                 find_children(elementToReplace.parentElement.parentElement)
                 
             }
+            */
             var c = elementToReplace.children;
             for (var i = 0; i < c.length; i++) {
                 c[i].style.color = "white";
@@ -356,7 +346,6 @@ markToReplace_text = function (textNode) {
                     youtubeC[i].style.color = "blue";
                 }
                 find_children(youtubeC[i]);
-                console.log(i);
 
             }
         }
@@ -373,8 +362,8 @@ markToReplace_text = function (textNode) {
         spoilerStringCache = [];
     }, 3000);
 */
+markToReplace_childNodes(document.body);
     zenofunc=function(mutation){
-        console.log('Works!');
         textCache = [];
         spoilerStringCache = [];
         //markToReplace_childNodes(document.body);
@@ -391,7 +380,6 @@ markToReplace_text = function (textNode) {
         // fired when a mutation occurs
 
         for (var i = 0; i < mutations.length; i++) {
-            console.log(mutations[i].target, observer);
             zenofunc(mutations[i].target);
         }
         
