@@ -1,10 +1,12 @@
 let whiteList=[];
 let onWhiteList=false;
+let movieData;
 try {
-    chrome.storage.sync.get(['whiteList'],
+    chrome.storage.sync.get(['whiteList','movieDatas'],
         items => {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
-            console.log(whiteList);
+            movieData=(typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
+            console.log(items);
         });
 }
 catch {
@@ -53,6 +55,14 @@ chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
     else if(request.message==="whiteListCheck"){
         console.log('check');
         urlChange(trimUrl(request.url));
+    }else if(request.message==="getMovieData"){
+        chrome.runtime.sendMessage({
+            message: 'getMovieDataReply',
+            movieData: movieData
+        });
+    }else if(request.message==='setMovieData'){
+        movieData=request.movieData;
+        chrome.storage.sync.set({ 'movieDatas': movieData });
     }
 });
 

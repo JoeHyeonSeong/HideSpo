@@ -35,21 +35,13 @@ class Main extends Component {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse)=>{
             if (request.message === "whiteList") {
                 this.setState({ onWhiteList: request.onWhiteList });
+            }else if(request.message === "getMovieDataReply") {
+                this.setState({ movieDatas: request.movieData });
             }
         });
-
-        try {
-            chrome.storage.sync.get(['movieDatas'],
-                items => {
-                    let mv=(typeof items.movieDatas=="undefined")? []:items.movieDatas;
-                    this.setState({
-                        movieDatas: mv,
-                    });
-                });
-        }
-        catch {
-            console.log('fail to load data');
-        }
+        chrome.runtime.sendMessage({
+            message: 'getMovieData'
+        });
         try {
             chrome.tabs.getSelected(null, tabs => {
                 let url = tabs.url;
@@ -122,7 +114,10 @@ class Main extends Component {
         this.setState({
             movieDatas: newDatas
         });
-        chrome.storage.sync.set({'movieDatas':newDatas});
+        chrome.runtime.sendMessage({
+            message: 'setMovieData',
+            movieData: newDatas
+        });
         this.handleClose();
     }
 
@@ -134,7 +129,10 @@ class Main extends Component {
         this.setState({
             movieDatas: newDatas
         });
-        chrome.storage.sync.set({movieDatas:newDatas});
+        chrome.runtime.sendMessage({
+            message: 'setMovieData',
+            movieData: newDatas
+        });
     }
 
     toggleWhiteList = () => {
