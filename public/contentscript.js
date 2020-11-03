@@ -296,9 +296,9 @@ zenofunc = function (mutation) {
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.message === 'getMovieDataReply') {
-        console.log('get message');
         movieData = request.movieData;
-
+        if(movieData.length==0)
+            return;
         markToReplace_childNodes(document.body);
 
         MutationObserver = window.MutationObserver || window.WebKitMutationObserver;

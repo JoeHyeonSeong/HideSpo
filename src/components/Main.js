@@ -27,16 +27,26 @@ class Main extends Component {
     state = {
         open: false,
         movieDatas: [],
-        onWhiteList:false
+        onWhiteList:false,
+        blockPower:1
     }
     searchTitle = '';
     bodyText = '';
+    blockPowerText=[
+        '스포일러를 차단하지 않습니다.',
+        '의미를 분석해 차단합니다.',
+        '영화 제목이 포함된 모든 문장을 차단합니다.',
+        '영화 관련 정보가 포함된 모든 문장을 차단합니다.'
+    ];
     componentDidMount() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse)=>{
             if (request.message === "whiteList") {
                 this.setState({ onWhiteList: request.onWhiteList });
             }else if(request.message === "getMovieDataReply") {
-                this.setState({ movieDatas: request.movieData });
+                this.setState({
+                    movieDatas: request.movieData,
+                    blockPower:request.blockPower
+                });
             }
         });
         chrome.runtime.sendMessage({
@@ -62,18 +72,22 @@ class Main extends Component {
         return (
             <div className={classes.root}>
                 <Slider
-                    defaultValue={1}
+                    value={this.state.blockPower}
                     //getAriaValueText={valuetext}
                     aria-labelledby="discrete-slider"
                     valueLabelDisplay="auto"
+                    onChange={this.handleSliderChange}
                     step={1}
                     min={0}
-                    max={2}
+                    max={3}
                 />
+                <div>
+                {this.blockPowerText[this.state.blockPower]}
+                </div>
                 <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="영화제목" />
                 <Button variant="contained" color="primary" onClick={this.handleClickOpen}>Search</Button>
                 <Button variant="contained" color="primary" onClick={this.toggleWhiteList}>
-                    {this.state.onWhiteList ? '화이트리스트 제거' : '화이트리스트 추가'}
+                    {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 안함'}
                 </Button>
                 <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
                 <TableContainer component={Paper}>
@@ -150,6 +164,16 @@ class Main extends Component {
                     url:url
                 });
             }
+        });
+    }
+
+    handleSliderChange=(event,newValue)=>{
+        this.setState({
+            blockPower:newValue
+        })
+        chrome.runtime.sendMessage({
+            message: 'blockPowerChange',
+            blockPower:newValue
         });
     }
 

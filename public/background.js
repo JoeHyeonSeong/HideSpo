@@ -1,11 +1,14 @@
 let whiteList=[];
 let onWhiteList=false;
 let movieData;
+let blockPower;
 try {
-    chrome.storage.sync.get(['whiteList','movieDatas'],
+    chrome.storage.sync.get(['whiteList','movieDatas','blockPower'],
         items => {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
             movieData=(typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
+            blockPower=(typeof items.blockPower == "undefined") ? 1 : items.blockPower;
+            
             console.log(items);
         });
 }
@@ -56,15 +59,37 @@ chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
         console.log('check');
         urlChange(trimUrl(request.url));
     }else if(request.message==="getMovieData"){
-        chrome.runtime.sendMessage({
-            message: 'getMovieDataReply',
-            movieData: movieData
-        });
+        updateContentScript();
     }else if(request.message==='setMovieData'){
         movieData=request.movieData;
         chrome.storage.sync.set({ 'movieDatas': movieData });
+        updateContentScript();
+    }else if(request.message==='blockPowerChange'){
+        blockPower=request.blockPower;
+        chrome.storage.sync.set({'blockPower':blockPower});
+        updateContentScript();
     }
 });
+
+function updateContentScript(){
+    chrome.runtime.sendMessage({
+        message: 'getMovieDataReply',
+        movieData: movieData,
+        blockPower: blockPower
+    });
+    chrome.tabs.query({ active: true}, function (tabs) {
+        var currTab = tabs[0];
+        console.log(tabs);
+        if (currTab) { // Sanity check
+            chrome.tabs.sendMessage(currTab.id,
+                {
+                    message: 'getMovieDataReply',
+                    movieData: movieData,
+                    blockPower: blockPower
+                });
+        }
+    });
+}
 
 function urlChange(url) {
     let newOnWhiteList = isOnWhiteList(url);
