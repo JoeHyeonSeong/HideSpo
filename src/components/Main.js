@@ -28,7 +28,7 @@ const styles = {
         textAlign: 'center'
     },
     title: {
-        background: '#1d9a89',
+        background: 'linear-gradient(30deg, #1d9a89 30%, #199BB0 90%)',
         color: 'white',
         padding: 10,
         fontSize: 16,
@@ -46,6 +46,9 @@ const styles = {
         minWidth: 350,
         textAlign: 'center',
         background: 'white'
+    },
+    text:{
+        wordBreak:"keep-all"
     }
 };
 
@@ -125,7 +128,7 @@ class Main extends Component {
                                                 <img width='80' src={row.poster}></img>
                                             </TableCell>
                                             <TableCell align="right">
-                                                <p>{row.title}</p>
+                                                <p class={classes.text}>{row.title}</p>
                                                 <p>{row.prodYear}</p>
                                             </TableCell>
                                             <TableCell align="right">

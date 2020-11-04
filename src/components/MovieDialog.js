@@ -13,6 +13,10 @@ import IconButton from '@material-ui/core/IconButton';
 import {Close,AddCircle} from '@material-ui/icons';
 
 const styles = {
+    text:{
+        wordBreak:"keep-all",
+        textAlign:'center'
+    }
 };
 
 class MovieDialog extends Component {
@@ -45,7 +49,7 @@ class MovieDialog extends Component {
                                         <img width='80' src={row.poster}></img>
                                         </TableCell>
                                     <TableCell align="right" >
-                                        <p>{row.title}</p>
+                                        <p class={classes.text}>{row.title}</p>
                                         <p>{row.prodYear}</p>
                                         </TableCell>
                                     <TableCell align="right">
@@ -59,6 +63,11 @@ class MovieDialog extends Component {
                         </TableBody>
                     </Table>
                 </TableContainer>
+                            <div class={classes.text}>
+                                {this.state.movieData.length==0?
+                                '검색 결과가 없습니다':''
+                            }
+                            </div>
             </Dialog>
 
         );
