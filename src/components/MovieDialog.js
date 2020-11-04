@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { Button } from '@material-ui/core';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -11,12 +10,9 @@ import { withStyles } from '@material-ui/core/styles';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Dialog from '@material-ui/core/Dialog';
 import IconButton from '@material-ui/core/IconButton';
-import CloseIcon from '@material-ui/icons/Close';
+import {Close,AddCircle} from '@material-ui/icons';
 
 const styles = {
-    root: {
-        minWidth: 400,
-    },
 };
 
 class MovieDialog extends Component {
@@ -34,31 +30,29 @@ class MovieDialog extends Component {
         const name = 'react';
         const { classes } = this.props;
         return (
-            <Dialog className={classes.root} onClose={this.props.onClose} open={this.props.open}>
+            <Dialog fullWidth={true} onClose={this.props.onClose} open={this.props.open}>
                 <DialogTitle>영화 목록
                     <IconButton aria-label="close" className={classes.closeButton} onClick={this.props.onClose}>
-                        <CloseIcon />
+                        <Close></Close>
                     </IconButton>
                 </DialogTitle>
                 <TableContainer component={Paper}>
                     <Table aria-label="simple table">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell align="right">제목</TableCell>
-                                <TableCell align="right">연도</TableCell>
-                                <TableCell align="right">국가</TableCell>
-                                <TableCell align="right">감독</TableCell>
-                                <TableCell align="right">추가</TableCell>
-                            </TableRow>
-                        </TableHead>
                         <TableBody>
                             {this.state.movieData.map((row) => (
                                 <TableRow key={row.name}>
-                                    <TableCell align="right">{row.title}</TableCell>
-                                    <TableCell align="right">{row.prodYear}</TableCell>
-                                    <TableCell align="right">{row.nation}</TableCell>
-                                    <TableCell align="right">{row.directors.director[0].directorNm}</TableCell>
-                                    <TableCell align="right"><Button variant="contained" color="primary" onClick={() => { this.props.addMovie(row) }}>+</Button></TableCell>
+                                    <TableCell align="right">
+                                        <img width='80' src={row.poster}></img>
+                                        </TableCell>
+                                    <TableCell align="right">
+                                        <div>{row.title}</div>
+                                        </TableCell>
+                                    <TableCell align="right">
+                                        <IconButton variant="contained" color="primary"
+                                        onClick={() => { this.props.addMovie(row) }}>
+                                            <AddCircle></AddCircle>
+                                            </IconButton>
+                                        </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -76,13 +70,13 @@ class MovieDialog extends Component {
     }
 
     searchMovie = async () => {
-        console.log("search: " + this.props.title)
         let basicUrl = "http://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp?"
-            + "collection=kmdb_new2&ServiceKey=M9RA61A20074QJD5W74X&use=극장용&detail=N&sort=prodYear,1&title=";
+            + "collection=kmdb_new2&ServiceKey=M9RA61A20074QJD5W74X&use=극장용&detail=Y&sort=prodYear,1&title=";
         let response = await fetch(basicUrl + this.props.title)
         if (response.ok) {
             let json = await response.json();
             let results = json.Data[0].Result;
+            
             if (typeof results === 'undefined') {
                 this.setState({
                     movieData: []
@@ -90,12 +84,11 @@ class MovieDialog extends Component {
             }
             else {
                 for (let r of results) {
-                    console.log(r);
                     r.title = r.title.replace(/ !HS | !HE /gi, '');
-                    console.log(r.title);
+                    r.poster=r.posters.split('|')[0];
                 }
                 this.setState({
-                    movieData: json.Data[0].Result
+                    movieData: results
                 });
             }
 

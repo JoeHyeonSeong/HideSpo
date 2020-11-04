@@ -21,12 +21,25 @@ chrome.tabs.onUpdated.addListener(
         if (changeInfo.status == 'complete') {
             try {
                 chrome.tabs.getSelected(null, tabs => {
-                    urlChange(trimUrl(tabs.url));
+                    urlChange(trimUrl(tabs.url,true));
                 });
             }
             catch {
                 console.log("fail to access");
             }
+        }
+    }
+);
+
+chrome.tabs.onActivated.addListener(
+    function (tabId, changeInfo, tab) {
+        try {
+            chrome.tabs.getSelected(null, tabs => {
+                urlChange(trimUrl(tabs.url,false));
+            });
+        }
+        catch {
+            console.log("fail to access");
         }
     }
 );
@@ -79,17 +92,16 @@ function updateContentScript(){
     });
 }
 
-function urlChange(url) {
+function urlChange(url,excute) {
     let newOnWhiteList = isOnWhiteList(url);
-    console.log(newOnWhiteList);
     if (onWhiteList != newOnWhiteList) {
         onWhiteList = newOnWhiteList;
         if (onWhiteList)
-            chrome.browserAction.setIcon({ path: "images/icon_green16.png" });
-        else
             chrome.browserAction.setIcon({ path: "images/icon16.png" });
+        else
+            chrome.browserAction.setIcon({ path: "images/icon_green16.png" });
     }
-    if(!onWhiteList){
+    if(!onWhiteList&&excute){
         chrome.tabs.executeScript({ file: 'contentscript.js' });
     }
     chrome.runtime.sendMessage({
@@ -101,7 +113,7 @@ function urlChange(url) {
 function addWhiteList(url) {
     whiteList = whiteList.concat(url);
     chrome.storage.sync.set({ 'whiteList': whiteList });
-    urlChange(url);
+    urlChange(url,true);
 }
 
 
@@ -109,7 +121,7 @@ function deleteWhiteList(url) {
 
     whiteList = whiteList.filter(info => info !== url);
     chrome.storage.sync.set({ 'whiteList': whiteList });
-    urlChange(url);
+    urlChange(url,true);
 }
 
 function trimUrl(url){

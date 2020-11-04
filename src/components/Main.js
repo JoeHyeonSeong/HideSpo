@@ -2,9 +2,8 @@
 import React, { Component } from 'react';
 import { Button } from '@material-ui/core';
 import TextField from '@material-ui/core/TextField';
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles, createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import MovieDialog from './MovieDialog'
-import { ChromeReaderMode } from '@material-ui/icons';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -13,39 +12,74 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import Slider from '@material-ui/core/Slider';
-
+import {Search,Cancel} from '@material-ui/icons';
+import IconButton from '@material-ui/core/IconButton';
 const styles = {
     root: {
-        minWidth: 600,
-        minHeight: 600,
+        minWidth: 370,
+        background: '#e6e6e6',
+        textAlign: 'center',
+        paddingTop:10,
+        paddingBottom:10
     },
+    wrap: {
+        padding: 10,
+        margin: 10,
+        background: '#FFFFFF',
+        textAlign: 'center'
+    },
+    title: {
+        background: '#1d9a89',
+        color: 'white',
+        padding: 10,
+        fontSize: 16,
+        fontWeight: "fontWeightMedium"
+    },
+    table: {
+        padding: 10,
+        margin: 10,
+        background: '#FFFFFF',
+        textAlign: 'center',
+        minHeight: 390
+    },
+    fullButton: {
+        minWidth: 350,
+        textAlign: 'center',
+        background: 'white'
+    }
 };
 
-
+const theme = createMuiTheme({
+    palette: {
+        primary: {
+            main: '#1d9a89',
+        },
+    },
+});
 
 class Main extends Component {
     state = {
         open: false,
         movieDatas: [],
-        onWhiteList:false,
-        blockPower:1
+        onWhiteList: false,
+        blockPower: 1
     }
     searchTitle = '';
     bodyText = '';
-    blockPowerText=[
+    blockPowerText = [
         '스포일러를 차단하지 않습니다.',
         '의미를 분석해 차단합니다.',
         '영화 제목이 포함된 모든 문장을 차단합니다.',
         '영화 관련 정보가 포함된 모든 문장을 차단합니다.'
     ];
     componentDidMount() {
-        chrome.runtime.onMessage.addListener((request, sender, sendResponse)=>{
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.message === "whiteList") {
                 this.setState({ onWhiteList: request.onWhiteList });
-            }else if(request.message === "getMovieDataReply") {
+            } else if (request.message === "getMovieDataReply") {
                 this.setState({
                     movieDatas: request.movieData,
-                    blockPower:request.blockPower
+                    blockPower: request.blockPower
                 });
             }
         });
@@ -70,61 +104,91 @@ class Main extends Component {
         const name = 'react';
         const { classes } = this.props;
         return (
-            <div className={classes.root}>
-                <Slider
-                    value={this.state.blockPower}
-                    //getAriaValueText={valuetext}
-                    aria-labelledby="discrete-slider"
-                    valueLabelDisplay="auto"
-                    onChange={this.handleSliderChange}
-                    step={1}
-                    min={0}
-                    max={3}
-                />
-                <div>
-                {this.blockPowerText[this.state.blockPower]}
-                </div>
-                <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="영화제목" />
-                <Button variant="contained" color="primary" onClick={this.handleClickOpen}>Search</Button>
-                <Button variant="contained" color="primary" onClick={this.toggleWhiteList}>
-                    {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 안함'}
-                </Button>
-                <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
-                <TableContainer component={Paper}>
-                    <Table aria-label="simple table">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell align="right">제목</TableCell>
-                                <TableCell align="right"></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {this.state.movieDatas.map((row) => (
-                                <TableRow key={row.name}>
-                                    <TableCell align="right">{row.title}</TableCell>
-                                    <TableCell align="right">
-                                        <Button variant="contained" color="primary" onClick={()=>{this.deleteMovie(row)}}>-</Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </div>
+
+            <ThemeProvider theme={theme}>
+                    <Paper className={classes.title} square={true} elevation={3}>
+                        스포노노
+                </Paper>
+                <Paper className={classes.root}>
+                    <Button
+                        variant="contained"
+                        className={classes.fullButton}
+                        onClick={this.toggleWhiteList}
+                        color='white'
+                        elevation={3}>
+                        {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 안함'}
+                    </Button>
+                    <Paper className={classes.table} elevation={3}>
+                        <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="영화제목" />
+                        <Button variant="contained" color='primary' onClick={this.handleClickOpen}>
+                            <Search></Search>
+                            </Button>
+                        <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
+                        <TableContainer>
+                            <Table aria-label="simple table">
+                                <TableBody>
+                                    {this.state.movieDatas.map((row) => (
+                                        <TableRow key={row.name}>
+                                            <TableCell align="right">
+                                                <img width='80' src={row.poster}></img>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <div>{row.title}</div>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <IconButton variant="contained" color='primary' onClick={() => { this.deleteMovie(row) }}>
+                                                    <Cancel></Cancel>
+                                                    </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Paper>
+                    <Paper className={classes.wrap} elevation={3}>
+                        <Slider
+                            value={this.state.blockPower}
+                            aria-labelledby="discrete-slider"
+                            valueLabelDisplay="auto"
+                            onChange={this.handleSliderChange}
+                            step={1}
+                            min={0}
+                            max={3}
+                            marks={true}
+                        />
+                        <div>
+                            {this.blockPowerText[this.state.blockPower]}
+                        </div>
+                    </Paper>
+                </Paper>
+            </ThemeProvider>
 
         );
     }
 
     addMovie = (value) => {
-        let trimData={};
-        trimData.title=value.title;
-        trimData.prodYear=value.prodYear;
-        trimData.nation=value.nation;
-        trimData.director=value.directors.director.map(d=>d.directorNm);
-        trimData.actor=value.actors.actor.map(d=>d.actorNm);
-
-        let newDatas=this.state.movieDatas.concat(trimData);
-        console.log(newDatas);
+        let trimData = {};
+        trimData.title = value.title;
+        trimData.prodYear = value.prodYear;
+        trimData.nation = value.nation;
+        trimData.director = value.directors.director.map(d => d.directorNm);
+        trimData.actor=[];
+        trimData.poster=value.poster;
+        for(let s of value.staffs.staff){
+            if(s.staffRoleGroup=='출연'){
+                trimData.actor.push(s.staffNm);
+                trimData.actor=trimData.actor.concat(s.staffRole.split('/'));
+            }
+        }
+        for (let m of this.state.movieDatas) {
+            if (trimData.title === m.title && trimData.prodYear === m.prodYear){
+                this.handleClose();
+                return;
+            }
+        }
+        console.log(trimData);
+        let newDatas = this.state.movieDatas.concat(trimData);
         this.setState({
             movieDatas: newDatas
         });
@@ -135,9 +199,9 @@ class Main extends Component {
         this.handleClose();
     }
 
-    deleteMovie=(value)=>{
-        const {movieDatas}=this.state;
-        let newDatas=movieDatas.filter(info => info.title!==value.title);
+    deleteMovie = (value) => {
+        const { movieDatas } = this.state;
+        let newDatas = movieDatas.filter(info => info.title !== value.title);
         console.log(value.title);
         console.log(newDatas);
         this.setState({
@@ -155,25 +219,25 @@ class Main extends Component {
             if (this.state.onWhiteList) {
                 chrome.runtime.sendMessage({
                     message: 'whiteListDelete',
-                    url:url
+                    url: url
                 });
             }
             else {
                 chrome.runtime.sendMessage({
                     message: 'whiteListAdd',
-                    url:url
+                    url: url
                 });
             }
         });
     }
 
-    handleSliderChange=(event,newValue)=>{
+    handleSliderChange = (event, newValue) => {
         this.setState({
-            blockPower:newValue
+            blockPower: newValue
         })
         chrome.runtime.sendMessage({
             message: 'blockPowerChange',
-            blockPower:newValue
+            blockPower: newValue
         });
     }
 
@@ -192,7 +256,7 @@ class Main extends Component {
     };
 
     handleChange = (e) => {
-        this.searchTitle=e.target.value;
+        this.searchTitle = e.target.value;
     }
 
     handlePress = (e) => {
