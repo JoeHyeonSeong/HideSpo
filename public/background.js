@@ -18,26 +18,15 @@ catch {
 
 chrome.tabs.onUpdated.addListener(
     function (tabId, changeInfo, tab) {
-        try {
-            chrome.tabs.getSelected(null, tabs => {
-                urlChange(trimUrl(tabs.url));
-            });
-        }
-        catch {
-            console.log("fail to access");
-        }
-    }
-);
-
-chrome.tabs.onActivated.addListener(
-    function (activeInfo) {
-        try {
-            chrome.tabs.getSelected(null, tabs => {
-                urlChange(trimUrl(tabs.url));
-            });
-        }
-        catch {
-            console.log('fail to access');
+        if (changeInfo.status == 'complete') {
+            try {
+                chrome.tabs.getSelected(null, tabs => {
+                    urlChange(trimUrl(tabs.url));
+                });
+            }
+            catch {
+                console.log("fail to access");
+            }
         }
     }
 );
@@ -57,7 +46,6 @@ chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
     }
     else if(request.message==="whiteListCheck"){
         console.log('check');
-        urlChange(trimUrl(request.url));
     }else if(request.message==="getMovieData"){
         updateContentScript();
     }else if(request.message==='setMovieData'){
