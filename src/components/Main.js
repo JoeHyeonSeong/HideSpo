@@ -12,15 +12,14 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import Slider from '@material-ui/core/Slider';
-import {Search,Cancel} from '@material-ui/icons';
+import { Search, Cancel } from '@material-ui/icons';
 import IconButton from '@material-ui/core/IconButton';
 const styles = {
     root: {
         minWidth: 370,
         background: '#e6e6e6',
         textAlign: 'center',
-        paddingTop:10,
-        paddingBottom:10
+        paddingBottom: 10
     },
     wrap: {
         padding: 10,
@@ -33,7 +32,8 @@ const styles = {
         color: 'white',
         padding: 10,
         fontSize: 16,
-        fontWeight: "fontWeightMedium"
+        fontWeight: "fontWeightMedium",
+        marginBottom: 10
     },
     table: {
         padding: 10,
@@ -101,28 +101,20 @@ class Main extends Component {
     }
 
     render() {
-        const name = 'react';
         const { classes } = this.props;
         return (
 
             <ThemeProvider theme={theme}>
+                <Paper className={classes.root}>
                     <Paper className={classes.title} square={true} elevation={3}>
                         스포노노
                 </Paper>
-                <Paper className={classes.root}>
-                    <Button
-                        variant="contained"
-                        className={classes.fullButton}
-                        onClick={this.toggleWhiteList}
-                        color='white'
-                        elevation={3}>
-                        {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 안함'}
-                    </Button>
+
                     <Paper className={classes.table} elevation={3}>
                         <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="영화제목" />
                         <Button variant="contained" color='primary' onClick={this.handleClickOpen}>
                             <Search></Search>
-                            </Button>
+                        </Button>
                         <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
                         <TableContainer>
                             <Table aria-label="simple table">
@@ -133,12 +125,13 @@ class Main extends Component {
                                                 <img width='80' src={row.poster}></img>
                                             </TableCell>
                                             <TableCell align="right">
-                                                <div>{row.title}</div>
+                                                <p>{row.title}</p>
+                                                <p>{row.prodYear}</p>
                                             </TableCell>
                                             <TableCell align="right">
                                                 <IconButton variant="contained" color='primary' onClick={() => { this.deleteMovie(row) }}>
                                                     <Cancel></Cancel>
-                                                    </IconButton>
+                                                </IconButton>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -146,6 +139,14 @@ class Main extends Component {
                             </Table>
                         </TableContainer>
                     </Paper>
+                    <Button
+                        variant="contained"
+                        className={classes.fullButton}
+                        onClick={this.toggleWhiteList}
+                        color='white'
+                        elevation={3}>
+                        {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
+                    </Button>
                     <Paper className={classes.wrap} elevation={3}>
                         <Slider
                             value={this.state.blockPower}
@@ -173,16 +174,16 @@ class Main extends Component {
         trimData.prodYear = value.prodYear;
         trimData.nation = value.nation;
         trimData.director = value.directors.director.map(d => d.directorNm);
-        trimData.actor=[];
-        trimData.poster=value.poster;
-        for(let s of value.staffs.staff){
-            if(s.staffRoleGroup=='출연'){
+        trimData.actor = [];
+        trimData.poster = value.poster;
+        for (let s of value.staffs.staff) {
+            if (s.staffRoleGroup == '출연') {
                 trimData.actor.push(s.staffNm);
-                trimData.actor=trimData.actor.concat(s.staffRole.split('/'));
+                trimData.actor = trimData.actor.concat(s.staffRole.split('/'));
             }
         }
         for (let m of this.state.movieDatas) {
-            if (trimData.title === m.title && trimData.prodYear === m.prodYear){
+            if (trimData.title === m.title && trimData.prodYear === m.prodYear) {
                 this.handleClose();
                 return;
             }

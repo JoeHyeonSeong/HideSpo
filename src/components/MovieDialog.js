@@ -30,7 +30,7 @@ class MovieDialog extends Component {
         const name = 'react';
         const { classes } = this.props;
         return (
-            <Dialog fullWidth={true} onClose={this.props.onClose} open={this.props.open}>
+            <Dialog fullScreen={true} onClose={this.props.onClose} open={this.props.open}>
                 <DialogTitle>영화 목록
                     <IconButton aria-label="close" className={classes.closeButton} onClick={this.props.onClose}>
                         <Close></Close>
@@ -44,8 +44,9 @@ class MovieDialog extends Component {
                                     <TableCell align="right">
                                         <img width='80' src={row.poster}></img>
                                         </TableCell>
-                                    <TableCell align="right">
-                                        <div>{row.title}</div>
+                                    <TableCell align="right" >
+                                        <p>{row.title}</p>
+                                        <p>{row.prodYear}</p>
                                         </TableCell>
                                     <TableCell align="right">
                                         <IconButton variant="contained" color="primary"
@@ -71,12 +72,12 @@ class MovieDialog extends Component {
 
     searchMovie = async () => {
         let basicUrl = "http://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp?"
-            + "collection=kmdb_new2&ServiceKey=M9RA61A20074QJD5W74X&use=극장용&detail=Y&sort=prodYear,1&title=";
+            + "collection=kmdb_new2&ServiceKey=M9RA61A20074QJD5W74X&use=극장용&detail=Y&listCount=500&title=";
         let response = await fetch(basicUrl + this.props.title)
         if (response.ok) {
             let json = await response.json();
             let results = json.Data[0].Result;
-            
+            console.log(results);
             if (typeof results === 'undefined') {
                 this.setState({
                     movieData: []

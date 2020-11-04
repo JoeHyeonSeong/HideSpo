@@ -16,7 +16,7 @@
     var textCache = [];
     var spoilerStringCache = [];
     var movieData;
-
+    var blockColor='#1d9a89';
 isNullOrEmpty = function (value) {
     return value === null ||
         value === undefined ||
@@ -195,7 +195,7 @@ markToReplace_a = function (a) {
             elementToReplace.innerText = "키워드 '" + replace.alternateText + "' 포함되어있습니다";
             elementToReplace.style.color = "white";
             elementToReplace.setAttribute('needWhite', 'yes');
-            elementToReplace.style.backgroundColor = "blue";
+            elementToReplace.style.backgroundColor = "#1d9a89";
             elementToReplace.setAttribute(REPLACE_TEXT_ATTRIBUTE_NAME, "sadasdasfasdasfasdavasdfas");
 
             elementToReplace.querySelectorAll("img").forEach(function (el) {
@@ -255,8 +255,8 @@ markToReplace_text = function (textNode) {
 
             elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
 
-            elementToReplace.style.color = "blue";
-            elementToReplace.style.backgroundColor = "blue";
+            elementToReplace.style.color = blockColor;
+            elementToReplace.style.backgroundColor = blockColor;
             elementToReplace.childNodes.forEach(function (el) {
 
                 el.innerHTML = replace.alternateText;
@@ -276,7 +276,7 @@ find_children = function (parentNode) {
         var youtubeC = parentNode.children;
         for (var i = 0; i < youtubeC.length; i++) {
             if (youtubeC[i].getAttribute("needWhite") != "yes") {
-                youtubeC[i].style.color = "blue";
+                youtubeC[i].style.color = blockColor;
             }
             find_children(youtubeC[i]);
 

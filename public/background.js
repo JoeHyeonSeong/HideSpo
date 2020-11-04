@@ -18,10 +18,11 @@ catch {
 
 chrome.tabs.onUpdated.addListener(
     function (tabId, changeInfo, tab) {
+        console.log('update!');
         if (changeInfo.status == 'complete') {
             try {
                 chrome.tabs.getSelected(null, tabs => {
-                    urlChange(trimUrl(tabs.url,true));
+                    urlChange(trimUrl(tabs.url),true);
                 });
             }
             catch {
@@ -35,7 +36,7 @@ chrome.tabs.onActivated.addListener(
     function (tabId, changeInfo, tab) {
         try {
             chrome.tabs.getSelected(null, tabs => {
-                urlChange(trimUrl(tabs.url,false));
+                urlChange(trimUrl(tabs.url),false);
             });
         }
         catch {
@@ -59,6 +60,10 @@ chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
     }
     else if(request.message==="whiteListCheck"){
         console.log('check');
+        chrome.runtime.sendMessage({
+            message: 'whiteList',
+            onWhiteList: onWhiteList
+        });
     }else if(request.message==="getMovieData"){
         updateContentScript();
     }else if(request.message==='setMovieData'){
@@ -93,6 +98,8 @@ function updateContentScript(){
 }
 
 function urlChange(url,excute) {
+    console.log('urlChange!');
+    console.log(excute);
     let newOnWhiteList = isOnWhiteList(url);
     if (onWhiteList != newOnWhiteList) {
         onWhiteList = newOnWhiteList;
@@ -101,6 +108,7 @@ function urlChange(url,excute) {
         else
             chrome.browserAction.setIcon({ path: "images/icon_green16.png" });
     }
+    console.log(onWhiteList);
     if(!onWhiteList&&excute){
         chrome.tabs.executeScript({ file: 'contentscript.js' });
     }
