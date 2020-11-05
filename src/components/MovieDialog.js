@@ -21,9 +21,10 @@ const styles = {
 
 class MovieDialog extends Component {
     state = {
-        movieData: []
+        movieData: [],
+        searchStatusText:''
     }
-
+    
     componentDidUpdate(prevProps, prevState) {
         if (prevProps.open != this.props.open && this.props.open) {
             this.searchMovie();
@@ -64,9 +65,7 @@ class MovieDialog extends Component {
                     </Table>
                 </TableContainer>
                             <div class={classes.text}>
-                                {this.state.movieData.length==0?
-                                '검색 결과가 없습니다':''
-                            }
+                                {this.state.searchStatusText}
                             </div>
             </Dialog>
 
@@ -83,26 +82,34 @@ class MovieDialog extends Component {
         let basicUrl = "http://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp?"
             + "collection=kmdb_new2&ServiceKey=M9RA61A20074QJD5W74X&use=극장용&detail=Y&listCount=500&title=";
         let response = await fetch(basicUrl + this.props.title)
-        if (response.ok) {
-            let json = await response.json();
-            let results = json.Data[0].Result;
-            console.log(results);
-            if (typeof results === 'undefined') {
-                this.setState({
-                    movieData: []
-                });
-            }
-            else {
-                for (let r of results) {
-                    r.title = r.title.replace(/ !HS | !HE /gi, '');
-                    r.poster=r.posters.split('|')[0];
+        this.setState({
+            movieData: [],
+            searchStatusText: '검색 중'
+        }, async () => {
+            if (response.ok) {
+                let json = await response.json();
+                let results = json.Data[0].Result;
+                console.log(results);
+                if (typeof results === 'undefined') {
+                    this.setState({
+                        movieData: [],
+                        searchStatusText: '검색결과가 없습니다.'
+                    });
                 }
-                this.setState({
-                    movieData: results
-                });
-            }
+                else {
+                    this.searchStatusText = '';
+                    for (let r of results) {
+                        r.title = r.title.replace(/ !HS | !HE /gi, '');
+                        r.poster = r.posters.split('|')[0];
+                    }
+                    this.setState({
+                        movieData: results,
+                        searchStatusText: ''
+                    });
+                }
 
-        }
+            }
+        });
     }
 }
 export default withStyles(styles)(MovieDialog);

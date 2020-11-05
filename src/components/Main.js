@@ -19,7 +19,8 @@ const styles = {
         minWidth: 370,
         background: '#e6e6e6',
         textAlign: 'center',
-        paddingBottom: 10
+        paddingBottom: 10,
+        overflow: 'hidden'
     },
     wrap: {
         padding: 10,
@@ -47,8 +48,8 @@ const styles = {
         textAlign: 'center',
         background: 'white'
     },
-    text:{
-        wordBreak:"keep-all"
+    text: {
+        wordBreak: "keep-all"
     }
 };
 
@@ -108,7 +109,7 @@ class Main extends Component {
         return (
 
             <ThemeProvider theme={theme}>
-                <Paper className={classes.root}>
+                <Paper className={classes.root} square={true}>
                     <Paper className={classes.title} square={true} elevation={3}>
                         스포노노
                 </Paper>

@@ -1,5 +1,4 @@
 let whiteList=[];
-let onWhiteList=false;
 let movieData;
 let blockPower;
 try {
@@ -16,27 +15,12 @@ catch {
     console.log('fail to load data');
 }
 
-chrome.tabs.onUpdated.addListener(
-    function (tabId, changeInfo, tab) {
-        console.log('update!');
-        if (changeInfo.status == 'complete') {
-            try {
-                chrome.tabs.getSelected(null, tabs => {
-                    urlChange(trimUrl(tabs.url),true);
-                });
-            }
-            catch {
-                console.log("fail to access");
-            }
-        }
-    }
-);
-
 chrome.tabs.onActivated.addListener(
     function (tabId, changeInfo, tab) {
+        console.log('activate');
         try {
             chrome.tabs.getSelected(null, tabs => {
-                urlChange(trimUrl(tabs.url),false);
+                iconCheck(trimUrl(tabs.url),false);
             });
         }
         catch {
@@ -48,22 +32,30 @@ chrome.tabs.onActivated.addListener(
 chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
 {
     console.log(request);
+    console.log('sender');
+    console.log(sender);
     if( request.message === "whiteListAdd" )
     {
         console.log("add");
-        addWhiteList(trimUrl(request.url));
+        let trim=trimUrl(request.url);
+        addWhiteList(trim);
+        sendWhiteList_popup(trim);
+        sendWhiteList_content();
     }
     else if( request.message === "whiteListDelete" )
     {
         console.log("delete");
-        deleteWhiteList(trimUrl(request.url));
+        let trim=trimUrl(request.url);
+        deleteWhiteList(trim);
+        sendWhiteList_popup(trim);
+        sendWhiteList_content();
     }
     else if(request.message==="whiteListCheck"){
         console.log('check');
-        chrome.runtime.sendMessage({
-            message: 'whiteList',
-            onWhiteList: onWhiteList
-        });
+        let trim=trimUrl(request.url);
+        sendWhiteList_popup(trim);
+    }else if(request.message==="whiteListCheck_content"){
+        sendWhiteList_content();
     }else if(request.message==="getMovieData"){
         updateContentScript();
     }else if(request.message==='setMovieData'){
@@ -76,6 +68,27 @@ chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
         updateContentScript();
     }
 });
+
+function sendWhiteList_content(){
+    chrome.tabs.query({ active: true}, function (tabs) {
+        var currTab = tabs[0];
+        console.log(tabs);
+        if (currTab) { // Sanity check
+            chrome.tabs.sendMessage(currTab.id,
+                {
+                    message: 'whiteList',
+        onWhiteList: isOnWhiteList(trimUrl(currTab.url))
+                });
+        }
+    });
+}
+
+function sendWhiteList_popup(trimUrl){
+    chrome.runtime.sendMessage({
+        message: 'whiteList',
+        onWhiteList: isOnWhiteList(trimUrl)
+    });
+}
 
 function updateContentScript(){
     chrome.runtime.sendMessage({
@@ -97,31 +110,20 @@ function updateContentScript(){
     });
 }
 
-function urlChange(url,excute) {
+function iconCheck(url) {
     console.log('urlChange!');
-    console.log(excute);
-    let newOnWhiteList = isOnWhiteList(url);
-    if (onWhiteList != newOnWhiteList) {
-        onWhiteList = newOnWhiteList;
-        if (onWhiteList)
-            chrome.browserAction.setIcon({ path: "images/icon16.png" });
-        else
-            chrome.browserAction.setIcon({ path: "images/icon_green16.png" });
-    }
-    console.log(onWhiteList);
-    if(!onWhiteList&&excute){
-        chrome.tabs.executeScript({ file: 'contentscript.js' });
-    }
-    chrome.runtime.sendMessage({
-        message: 'whiteList',
-        onWhiteList: onWhiteList
-    });
+    let onWhiteList = isOnWhiteList(url);
+    if (onWhiteList)
+        chrome.browserAction.setIcon({ path: "images/icon16.png" });
+    else
+        chrome.browserAction.setIcon({ path: "images/icon_green16.png" });
 }
 
 function addWhiteList(url) {
     whiteList = whiteList.concat(url);
     chrome.storage.sync.set({ 'whiteList': whiteList });
-    urlChange(url,true);
+
+    iconCheck(url);
 }
 
 
@@ -129,7 +131,7 @@ function deleteWhiteList(url) {
 
     whiteList = whiteList.filter(info => info !== url);
     chrome.storage.sync.set({ 'whiteList': whiteList });
-    urlChange(url,true);
+    iconCheck(url);
 }
 
 function trimUrl(url){

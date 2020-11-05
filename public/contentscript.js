@@ -294,36 +294,55 @@ zenofunc = function (mutation) {
     spoilerStringCache = [];
 }
 
+
+AttachBlockObserver = function () {
+    if (movieData.length == 0)
+        return;
+    markToReplace_childNodes(document.body);
+
+    MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+
+    let observer = new MutationObserver(function (mutations, observer) {
+        // fired when a mutation occurs
+
+        for (var i = 0; i < mutations.length; i++) {
+            zenofunc(mutations[i].target);
+        }
+
+        // ...
+    });
+
+    // define what element should be observed by the observer
+    // and what types of mutations trigger the callback
+    observer.observe(document, {
+        subtree: true,
+        attributes: true,
+        //...
+    });
+}
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.message === 'getMovieDataReply') {
         movieData = request.movieData;
-        if(movieData.length==0)
-            return;
-        markToReplace_childNodes(document.body);
+        console.log('data reply');
+    }
 
-        MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+    if(request.message==="whiteList"){
+        console.log(request.onWhiteList);
+        if(request.onWhiteList){
 
-        let observer = new MutationObserver(function (mutations, observer) {
-            // fired when a mutation occurs
-
-            for (var i = 0; i < mutations.length; i++) {
-                zenofunc(mutations[i].target);
-            }
-
-            // ...
-        });
-
-        // define what element should be observed by the observer
-        // and what types of mutations trigger the callback
-        observer.observe(document, {
-            subtree: true,
-            attributes: true,
-            //...
-        });
+        }
+        else {
+            AttachBlockObserver();
+        }
     }
 })
+
 
 chrome.runtime.sendMessage({
     message: 'getMovieData'
 });
-console.log('hi');
+
+chrome.runtime.sendMessage({
+    message: 'whiteListCheck_content'
+});
