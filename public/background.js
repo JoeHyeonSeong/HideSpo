@@ -15,45 +15,58 @@ catch {
     console.log('fail to load data');
 }
 
+chrome.tabs.onUpdated.addListener(
+    function (tabId, changeInfo, tab) {
+        console.log('update');
+        let url;
+        chrome.tabs.executeScript(tabId.tabId,
+            { code: "document.domain" },
+            function (results) {
+                url = results[0];
+                iconCheck(url);
+            });
+    }
+);
+
 chrome.tabs.onActivated.addListener(
     function (tabId, changeInfo, tab) {
         console.log('activate');
-        try {
-            chrome.tabs.getSelected(null, tabs => {
-                iconCheck(trimUrl(tabs.url),false);
+        let url;
+        console.log(tabId);
+        chrome.tabs.executeScript(tabId.tabId,
+            { code: "document.domain" },
+            function (results) {
+                url = results[0];
+                iconCheck(url);
+
             });
-        }
-        catch {
-            console.log("fail to access");
-        }
     }
+
 );
 
 chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
 {
-    console.log(request);
-    console.log('sender');
-    console.log(sender);
     if( request.message === "whiteListAdd" )
     {
         console.log("add");
-        let trim=trimUrl(request.url);
-        addWhiteList(trim);
-        sendWhiteList_popup(trim);
+        console.log(request.url);
+        let url=request.url;
+        addWhiteList(url);
+        sendWhiteList_popup(url);
         sendWhiteList_content();
     }
     else if( request.message === "whiteListDelete" )
     {
         console.log("delete");
-        let trim=trimUrl(request.url);
-        deleteWhiteList(trim);
-        sendWhiteList_popup(trim);
+        let url=request.url;
+        deleteWhiteList(url);
+        sendWhiteList_popup(url);
         sendWhiteList_content();
     }
     else if(request.message==="whiteListCheck"){
         console.log('check');
-        let trim=trimUrl(request.url);
-        sendWhiteList_popup(trim);
+        let url=request.url;
+        sendWhiteList_popup(url);
     }else if(request.message==="whiteListCheck_content"){
         sendWhiteList_content();
     }else if(request.message==="getMovieData"){
@@ -69,17 +82,21 @@ chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
     }
 });
 
-function sendWhiteList_content(){
-    chrome.tabs.query({ active: true}, function (tabs) {
-        var currTab = tabs[0];
-        console.log(tabs);
-        if (currTab) { // Sanity check
-            chrome.tabs.sendMessage(currTab.id,
-                {
-                    message: 'whiteList',
-        onWhiteList: isOnWhiteList(trimUrl(currTab.url))
-                });
-        }
+function sendWhiteList_content() {
+
+    chrome.tabs.query({ active: true }, function (tabs) {
+        let url;
+        chrome.tabs.executeScript(
+            { code: "document.domain" },
+            function (results) {
+                url = results[0];
+                chrome.tabs.sendMessage(tabs[0].id,
+                    {
+                        message: 'whiteList',
+                        onWhiteList: isOnWhiteList(url)
+                    });
+            });
+
     });
 }
 

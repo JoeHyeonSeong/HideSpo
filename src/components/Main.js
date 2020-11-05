@@ -31,7 +31,7 @@ const styles = {
     title: {
         background: 'linear-gradient(30deg, #1d9a89 30%, #199BB0 90%)',
         color: 'white',
-        padding: 10,
+        padding: 15,
         fontSize: 16,
         fontWeight: "fontWeightMedium",
         marginBottom: 10
@@ -90,18 +90,15 @@ class Main extends Component {
         chrome.runtime.sendMessage({
             message: 'getMovieData'
         });
-        try {
-            chrome.tabs.getSelected(null, tabs => {
-                let url = tabs.url;
+        chrome.tabs.executeScript(
+            { code: "document.domain" },
+            (results) => {
+                let url = results[0];
                 chrome.runtime.sendMessage({
                     message: 'whiteListCheck',
                     url: url
                 });
             });
-        }
-        catch {
-            console.log("fail to access");
-        }
     }
 
     render() {
@@ -219,21 +216,25 @@ class Main extends Component {
     }
 
     toggleWhiteList = () => {
-        chrome.tabs.getSelected(null, tabs => {
-            let url = tabs.url;
-            if (this.state.onWhiteList) {
-                chrome.runtime.sendMessage({
-                    message: 'whiteListDelete',
-                    url: url
-                });
-            }
-            else {
-                chrome.runtime.sendMessage({
-                    message: 'whiteListAdd',
-                    url: url
-                });
-            }
-        });
+        let url;
+        chrome.tabs.executeScript(
+            { code: "document.domain" },
+            (results) => {
+                url = results[0];
+                if (this.state.onWhiteList) {
+                    chrome.runtime.sendMessage({
+                        message: 'whiteListDelete',
+                        url: url
+                    });
+                }
+                else {
+                    chrome.runtime.sendMessage({
+                        message: 'whiteListAdd',
+                        url: url
+                    });
+                }
+            });
+
     }
 
     handleSliderChange = (event, newValue) => {
