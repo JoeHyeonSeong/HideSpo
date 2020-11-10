@@ -270,38 +270,5 @@ class Main extends Component {
             this.handleClickOpen();
         }
     }
-
-    preprocess = async (str) => {
-        console.log(str);
-        let response = await fetch("https://open-korean-text-api.herokuapp.com/tokenize?text=" + str)
-        if (response.ok) {
-            let json = response.json();
-            let words = [];
-            for (let token of json.tokens) {
-                let split = token.split(/:|\(/);
-                let blockPumsa = ['Punctuation', 'Foreign', 'Alpha', 'URL', "ScreenName", "Josa"];
-                if (!blockPumsa.includes(split[1])) {
-                    let newWord = split[0];
-                    words.push(split[0]);
-                    //if(split[1]=='Noun')
-                    //newWord=properNounLabel(hash[data])
-                }
-            }
-            let sentence = words.join(' ').trim();
-            console.log(sentence);
-        }
-    }
-
-    properNounLabel(info, word) {
-        if (info[0] == word)
-            return "<타이틀>";
-        for (let director in info[1])
-            if (director == word)
-                return "<감독>";
-        for (let director in info[2])
-            if (director == word)
-                return "<배우>";
-        return word;
-    }
 }
 export default withStyles(styles)(Main);

@@ -1,12 +1,20 @@
-let whiteList=[];
+/*
+const start = async function () {
+    const model = await tf.loadLayersModel('./datas/model.json');
+    return model;
+}
+
+const model = start();
+*/
+let whiteList = [];
 let movieData;
 let blockPower;
 try {
-    chrome.storage.sync.get(['whiteList','movieDatas','blockPower'],
+    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower'],
         items => {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
-            movieData=(typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
-            blockPower=(typeof items.blockPower == "undefined") ? 1 : items.blockPower;
+            movieData = (typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
+            blockPower = (typeof items.blockPower == "undefined") ? 1 : items.blockPower;
             
             console.log(items);
         });
@@ -14,6 +22,11 @@ try {
 catch {
     console.log('fail to load data');
 }
+const url = chrome.runtime.getURL('datas/wordindex.json');
+let wordindex;
+fetch(url)
+    .then((response) => response.json()) //assuming file contains json
+    .then((json) => wordindex=json);
 
 chrome.tabs.onUpdated.addListener(
     function (tabId, changeInfo, tab) {
@@ -38,14 +51,15 @@ chrome.tabs.onActivated.addListener(
             function (results) {
                 url = results[0];
                 iconCheck(url);
-
             });
     }
 
 );
 
-chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
+chrome.runtime.onMessage.addListener( async function(request,sender,sendResponse)
 {
+    console.log('sender');
+    console.log(sender);
     if( request.message === "whiteListAdd" )
     {
         console.log("add");
@@ -77,8 +91,16 @@ chrome.runtime.onMessage.addListener( function(request,sender,sendResponse)
         updateContentScript();
     }else if(request.message==='blockPowerChange'){
         blockPower=request.blockPower;
-        chrome.storage.sync.set({'blockPower':blockPower});
+        chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
+    } else if (request.message === 'nlpCheck') {
+        spoilerCheck(request.data).then(isSpoiler => {
+            chrome.tabs.sendMessage(sender.tab.id,
+                {
+                    message: 'nlpReply',
+                    isSpoiler: isSpoiler
+                });
+        });
     }
 });
 
@@ -165,13 +187,59 @@ function trimUrl(url){
 }
 
 function isOnWhiteList(url) {
-    console.log('target '+url);
     for (wh of whiteList) {
-        console.log(wh);
         if (wh === url){
-            console.log('match!');
             return true;
         }
     }
     return false;
 }
+
+async function spoilerCheck(str){
+    let pre=await preprocess(str);
+    console.log(pre);
+    return nlpCheck(pre);
+}
+
+async function preprocess(str){
+    let response = await fetch("https://open-korean-text-api.herokuapp.com/tokenize?text=" + str);
+    if (response.ok) {
+        let json = await response.json();
+        let words=[];
+        for (let token of json.tokens) {
+            let split = token.split(/:|\(/);
+            let blockPumsa = ['Punctuation', 'Foreign', 'Alpha', 'URL', "ScreenName", "Josa"];
+            if (!blockPumsa.includes(split[1])) {
+                let newWord = split[0];
+                if(split[1]=='Noun')
+                    newWord=properNounLabel(split[0])
+                words.push(newWord);
+            }
+        }
+        let sentence = words.join(' ').trim();
+        console.log(sentence);
+        return sentence;
+    }
+    return null;
+}
+
+function properNounLabel(word) {
+    for(let info of movieData){
+        if (info.title.trim() == word)
+            return "<타이틀>";
+        for (let director in info.director)
+            if (director.trim() == word)
+                return "<감독>";
+        for (let actor in info.actor)
+            if (actor.trim() == word)
+                return "<배우>";
+    }
+    return word;
+}
+
+function nlpCheck(str){
+    //console.log(model);
+    console.log(wordindex);
+    return true;
+}
+
