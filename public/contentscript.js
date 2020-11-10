@@ -3,6 +3,7 @@
 
     REPLACE_NEEDED_ATTRIBUTE_NAME = "data-replace-needed"
 
+    ATTRIBUTE_FOR_SPONONO = "attribute-for-sponono"
     ORIGINAL_STYLE_ATTRIBUTE_NAME = "data-original-style"
     ORIGINAL_WIDTH_ATTRIBUTE_NAME = "data-original-width"
     ORIGINAL_HEIGHT_ATTRIBUTE_NAME = "data-original-height"
@@ -13,9 +14,49 @@
     NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP = "[^ㄱ-ㅎ가-힣a-z0-9]?"
     NUMBER_OR_LETTER_OUTSIDE_REG_EXP = /[ㄱ-ㅎ가-힣a-z0-9]/
 
+    skipElementsFromRenderReplaceDivBecauseItHasBeenRestored = []
+
+TABLE_TEXT = "<table data-replacer-element-marker='true'" +
+    "class='blockingAreaForSponono'" +
+    "style='all: unset !important;" +
+    "text-transform: initial !important;" +
+    "line-height: 16px !important;" +
+    "width: #elementToReplaceWidth#px !important;" +
+    "height: #elementToReplaceHeight#px !important;" +
+    "color: white !important;" +
+    "font-size: 12px !important;" +
+    "font-family: Arial !important;" +
+    "font-weight: bold !important;" +
+    "padding: 5px !important;" +
+    "background-color: #backgroundColor# !important;" +
+    "border-radius: 4px !important;" +
+    "display: inline-block !important;" +
+    "position: relative !important;" +
+    "cursor: default !important;" +
+    "z-index: 10 !important;'>" +
+    "<tr style='all: unset !important;" +
+    "vertical-align: middle !important;'>" +
+    "<td style='all: unset !important;" +
+    "vertical-align: middle !important;'>" +
+    "<span title='#title#' " +
+    "style='all: unset !important;" +
+    "font-size: 12px !important;" +
+    "display: block !important; " +
+    "padding-left: 5px !important;" +
+    "text-overflow: ellipsis !important; " +
+    "overflow: hidden !important; " +
+    "white-space: nowrap !important;" +
+    "width: #textWidth#px !important;'>#text#</span>" +
+    "</td>" +
+    "</tr>" +
+    "</table>";
+
     var textCache = [];
     var spoilerStringCache = [];
     var movieData;
+    var level=-1;
+    var movieDataLength=-1;
+    var whiteListChecker;
     var blockColor='#1d9a89';
 isNullOrEmpty = function (value) {
     return value === null ||
@@ -32,7 +73,6 @@ shouldReplaceText = function (text) {
     var res = {};
     var temp = null;
     res.shouldReplace = false;
-
     var trimmedText = text.replace('↵', "").trim();
     if (trimmedText.length > 0) {
 
@@ -47,30 +87,69 @@ shouldReplaceText = function (text) {
                 temp = null;
             }
 
+            switch (level) {
+                case 3:
+                    for (var i = 0; i < movieData.length; i++) {
+                        var actorAndDirector = movieData[i].actor.concat(movieData[i].director);
+                        for (var j = 0; j < actorAndDirector.length; j++) {
+                            var spoilerString = "";
+                            spoilerString = actorAndDirector[j].trim();
+                            var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
+                            if (normalizedLowerSpoilerString == "")
+                                continue;
+                            if (normalizedLowerSpoilerString.split(" ").length === 1) {
 
-            for (var i = 0; i < movieData.length; i++) {
-                var spoilerString = ""
-                spoilerString = movieData[i].title.trim();
-                //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
-                var normalizedLowerSpoilerString = spoilerString;
-                if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
+                                if (
+                                    (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                                    (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                                    (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
+                                    (normalizedLowerSpoilerString === normalizeLowerText)) {
+                                    temp = spoilerString;
+                                }
+                            } else {
+                                
+                                var splitByBlank = normalizedLowerSpoilerString.split(" ");
+                                for (var k = 0; k < splitByBlank.length; k++) {
 
-                    if (
-                        (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                        (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                        (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                        (normalizedLowerSpoilerString === normalizeLowerText)) {
-                        temp = spoilerString;
-
+                                    var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                                    var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                                    if (compareText.includes(compareSpoilerString)) {
+                                        temp = spoilerString;
+                                    }
+                                }
+                            }
+                        }
                     }
-                } else {
-                    var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                    var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                    if (compareText.includes(compareSpoilerString)) {
-                        temp = spoilerString;
+                case 2:
+                    for (var i = 0; i < movieData.length; i++) {
+                        var spoilerString = ""
+                        spoilerString = movieData[i].title.trim();
+                        //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
+                        var normalizedLowerSpoilerString = spoilerString;
+                        if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
+
+                            if (
+                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                                (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
+                                (normalizedLowerSpoilerString === normalizeLowerText)) {
+                                temp = spoilerString;
+
+                            }
+                        } else {
+                            var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                            var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                            if (compareText.includes(compareSpoilerString)) {
+                                temp = spoilerString;
+                            }
+                        }
                     }
-                }
+                case 1:
+                    //의미 구분 영역
+                default:
+                    break;
             }
+            
 
             textCache.push(trimmedText);
             spoilerStringCache.push(temp);
@@ -167,6 +246,25 @@ replaceDivIsEnabled = function (node, nodeName) {
 
 }
 
+markElementForReplaceDivAndHide= function(elementToReplace, displayString) {
+
+    if (elementToReplace.hasAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
+        return;
+    }
+    var originalStyle = elementToReplace.getAttribute("style");
+    var elementToReplaceWidth = getElementToReplaceWidth(elementToReplace);
+    var elementToReplaceHeight = getElementToReplaceHeight(elementToReplace);
+    elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
+    elementToReplace.setAttribute(REPLACE_TEXT_ATTRIBUTE_NAME, "'" + displayString + "' 포함되어있습니다");
+    elementToReplace.setAttribute(ORIGINAL_STYLE_ATTRIBUTE_NAME, originalStyle);
+    elementToReplace.setAttribute(ORIGINAL_WIDTH_ATTRIBUTE_NAME, elementToReplaceWidth);
+    elementToReplace.setAttribute(ORIGINAL_HEIGHT_ATTRIBUTE_NAME, elementToReplaceHeight);
+    elementToReplace.setAttribute(ATTRIBUTE_FOR_SPONONO, true);
+    elementToReplace.style.display = "none";
+    //elementToReplace.style.visibility = 'hidden';
+    //elementToReplace.setAttribute("hidden", true);
+    
+}
 
 markToReplace_a = function (a) {
     var replace;
@@ -177,7 +275,7 @@ markToReplace_a = function (a) {
     if (a.href && (!replace || replace && !replace.shouldReplace)) {
         replace = shouldReplaceText(a.href);
     }
-
+    
     if (replace && replace.shouldReplace) {
         //if the link is in paragraph
         var aOrParent = a;
@@ -189,14 +287,14 @@ markToReplace_a = function (a) {
         if (elementToReplace === null)
             elementToReplace = aOrParent;
         if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
-            elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
-
+            //elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
+           
             var curUrl = window.location.hostname;
-            elementToReplace.innerText = "키워드 '" + replace.alternateText + "' 포함되어있습니다";
-            elementToReplace.style.color = "white";
-            elementToReplace.setAttribute('needWhite', 'yes');
-            elementToReplace.style.backgroundColor = "#1d9a89";
-            elementToReplace.setAttribute(REPLACE_TEXT_ATTRIBUTE_NAME, "sadasdasfasdasfasdavasdfas");
+            //elementToReplace.innerText = "키워드 '" + replace.alternateText + "' 포함되어있습니다";
+            //elementToReplace.style.color = "white";
+            //elementToReplace.setAttribute('needWhite', 'yes');
+            //elementToReplace.style.backgroundColor = "#1d9a89";
+            
 
             elementToReplace.querySelectorAll("img").forEach(function (el) {
                 el.setAttribute("style", "display: none;");
@@ -207,7 +305,7 @@ markToReplace_a = function (a) {
                 });
             }
 
-
+            markElementForReplaceDivAndHide(elementToReplace, replace.alternateText);
 
         }
     }
@@ -219,7 +317,7 @@ findTargetParent = function (curNode) {
         return null;
     }
     var siblingNodes = parentNode.childNodes;
-    if (curNode.nodeName=="LI")
+    if (curNode.nodeName == "body")
         return curNode;
     for (n of siblingNodes) {
         if (n != curNode &&
@@ -240,7 +338,6 @@ markToReplace_text = function (textNode) {
     if (replace && replace.shouldReplace) {
         var elementToReplace;
         var textNodeParentElement = textNode.parentElement;
-
         //if the parent is a formatter, we will find the first nonformatter parent, that should be replaced
         elementToReplace = findTargetParent(textNode);
         if (elementToReplace === null) {
@@ -252,23 +349,24 @@ markToReplace_text = function (textNode) {
             }
         }
         if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
+            
 
-            elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
+            //elementToReplace.style.color = blockColor;
+            /*elementToReplace.style.backgroundColor = blockColor;
 
-            elementToReplace.style.color = blockColor;
-            elementToReplace.style.backgroundColor = blockColor;
             elementToReplace.childNodes.forEach(function (el) {
 
                 el.innerHTML = replace.alternateText;
-            });
-            var curUrl = window.location.hostname;
+            });*/
 
+            /*var curUrl = window.location.hostname;
             var c = elementToReplace.children;
             for (var i = 0; i < c.length; i++) {
                 c[i].style.color = "white";
-            }
-
+            }*/
+            markElementForReplaceDivAndHide(elementToReplace, replace.alternateText);
         }
+        
     }
 }
 find_children = function (parentNode) {
@@ -284,28 +382,189 @@ find_children = function (parentNode) {
     }
     return;
 }
+getElementWithSize= function(element) {
+    //NOTE: The "a" html element doesn't have width and height (almost always), so we get the first child element with width and height
+    var elementWithSize = element;
+    if (element.nodeName === "A" && element.clientWidth < 1 && element.clientHeight < 1) {
+        for (var i = 0; i < element.children; i++) {
+            var child = element.children[i];
+            if (child.clientWidth > 0 && child.clientHeight > 0) {
+                elementWithSize = child;
+                break;
+            }
+        }
+    }
+    return elementWithSize;
+}
+
+getElementToReplaceWidth= function(element) {
+    var elementToReplaceWidth = getElementWithSize(element).clientWidth;
+    //NOTE: 100 is the default width if we can't read the default width
+    if (elementToReplaceWidth === 0) {
+        elementToReplaceWidth = 100;
+    } else if (elementToReplaceWidth < 42) {
+        //NOTE: 42 is the minimum width to fit the close icon and the 3 dots.
+        elementToReplaceWidth = 42;
+    }
+    return elementToReplaceWidth;
+}
+
+getElementToReplaceHeight= function(element) {
+    //12 is because 5,5 is padding 1,1 the border
+    var elementToReplaceHeight = getElementWithSize(element).clientHeight - 12;
+
+    //NOTE: 16 is the minimum height(height of the close icon)
+    if (elementToReplaceHeight < 16) {
+        elementToReplaceHeight = 16;
+    }
+    return elementToReplaceHeight;
+}
+//div 생성
+createReplaceDivs = function (node) {  
+
+    document.body.querySelectorAll("[" + REPLACE_NEEDED_ATTRIBUTE_NAME + "='true']").forEach(function (markedDiv) {
+        if (markedDiv.nextElementSibling && markedDiv.nextElementSibling.getAttribute(REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME)) {
+            return;
+        }
+
+
+        var elementToReplaceWidth = markedDiv.getAttribute(ORIGINAL_WIDTH_ATTRIBUTE_NAME);
+        var elementToReplaceHeight = markedDiv.getAttribute(ORIGINAL_HEIGHT_ATTRIBUTE_NAME);
+
+        var replaceText = markedDiv.getAttribute(REPLACE_TEXT_ATTRIBUTE_NAME);
+        var tableText = TABLE_TEXT.replace("#elementToReplaceWidth#", elementToReplaceWidth - 5)
+            .replace("#elementToReplaceHeight#", elementToReplaceHeight)
+            .replace("#backgroundColor#", blockColor)
+            .replace("#textWidth#", elementToReplaceWidth - 30)
+            .replace("#title#", replaceText)
+            .replace("#text#", replaceText);
+
+        var overlayTable = createElementFromHTML(tableText);
+        overlayTable.addEventListener("mouseover", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, false);
+        overlayTable.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showOriginalElement(e);
+            return false;
+        }, false);
+        
+        markedDiv.after(overlayTable);
+    });
+    
+}
+createElementFromHTML= function(htmlString) {
+    var div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
+    return div.firstChild;
+    }
+
+getDomPath= function(el) {
+        var stack = [];
+        while (el.parentNode != null) {
+
+            var sibCount = 0;
+            var sibIndex = 0;
+            for (var i = 0; i < el.parentNode.childNodes.length; i++) {
+                var sib = el.parentNode.childNodes[i];
+                if (sib.nodeName == el.nodeName) {
+                    if (sib === el) {
+                        sibIndex = sibCount;
+                    }
+                    sibCount++;
+                }
+            }
+            if (el.hasAttribute('id') && el.id != '') {
+                stack.unshift(el.nodeName.toLowerCase() + '#' + el.id);
+            } else if (sibCount > 1) {
+                stack.unshift(el.nodeName.toLowerCase() + ':eq(' + sibIndex + ')');
+            } else {
+                stack.unshift(el.nodeName.toLowerCase());
+            }
+            el = el.parentNode;
+        }
+        return stack.join(">");
+    }
+showOriginalElement= function(e) {
+        var clickedElement = e.target;
+        var overlayElement = clickedElement.closest("[" + REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME + "='true']");
+        skipElementsFromRenderReplaceDivBecauseItHasBeenRestored.push(getDomPath(overlayElement.previousElementSibling));
+
+        removeOneReplaceDiv(overlayElement);
+        //core.ui.utilities.badgeText.decreaseBadgeText();
+
+        //NOTE: prevent click for the covered html element
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+removeOneReplaceDiv= function(overlayElement) {
+        var blockedHtmlElement = overlayElement.previousElementSibling;
+        overlayElement.parentNode.removeChild(overlayElement);
+        restoreBlockedElement(blockedHtmlElement);
+    }
+restoreBlockedElement= function(blockedHtmlElement) {
+    var originalStyle = blockedHtmlElement.getAttribute(ORIGINAL_STYLE_ATTRIBUTE_NAME);
+
+    blockedHtmlElement.removeAttribute(REPLACE_TEXT_ATTRIBUTE_NAME);
+    blockedHtmlElement.removeAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME);
+    blockedHtmlElement.removeAttribute(ORIGINAL_STYLE_ATTRIBUTE_NAME);
+    blockedHtmlElement.removeAttribute(ORIGINAL_WIDTH_ATTRIBUTE_NAME);
+    if (originalStyle = "null") {
+        blockedHtmlElement.removeAttribute("style");
+    }
+       else if (originalStyle != null && originalStyle.length > 0) {
+            blockedHtmlElement.setAttribute("style", originalStyle);
+           
+        } else {
+            blockedHtmlElement.removeAttribute("style");
+        }
+    console.log("replace!!");
+    blockedHtmlElement.querySelectorAll("img").forEach(function (el) {
+        el.setAttribute("style", "display: block;");
+    });
+    if (blockedHtmlElement.parentElement.querySelectorAll("img").length == 1) {
+        blockedHtmlElement.parentElement.querySelectorAll("img").forEach(function (el) {
+            el.setAttribute("style", "display: block;");
+        });
+    }
+    
+    }
 
 zenofunc = function (mutation) {
     textCache = [];
     spoilerStringCache = [];
-    //markToReplace_childNodes(document.body);
+    //markToReplace_childNodes(document.body);;
     markToReplace_childNodes(mutation);
+    createReplaceDivs(mutation);
     textCache = [];
     spoilerStringCache = [];
 }
 
 
 AttachBlockObserver = function () {
+        
     if (movieData.length == 0)
         return;
+    console.log("?????????????0");
     markToReplace_childNodes(document.body);
-
+    createReplaceDivs(document.body);
+    console.log("1?????????????????");//왜??????????????????????????????????????????????????????????????????????????????????????????????????
     MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
     let observer = new MutationObserver(function (mutations, observer) {
         // fired when a mutation occurs
-        console.log(mutations);
+       
+        
         for (var i = 0; i < mutations.length; i++) {
-            zenofunc(mutations[i].target);
+            if (!mutations[i].target.hasAttribute(ATTRIBUTE_FOR_SPONONO) ) {
+                
+                zenofunc(mutations[i].target);
+                
+            }
+            
         }
 
         // ...
@@ -315,29 +574,48 @@ AttachBlockObserver = function () {
     // and what types of mutations trigger the callback
     observer.observe(document, {
         subtree: true,
+        //childList: true,
+        //characterData:true
         attributeOldValue: true,
         //...
     });
+
 }
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
     if (request.message === 'getMovieDataReply') {
+
         movieData = request.movieData;
-        console.log('data reply');
+        if (movieDataLength > movieData.length || (movieData.length == 0 && movieDataLength == 1))
+            window.location.reload();
+        if (level != request.blockPower && level != -1) {
+            window.location.reload();
+        }
+        level = request.blockPower;
+        if (request.onWhiteList == false || (request.onWhiteList == undefined && whiteListChecker == false)) {
+            
+            if (movieDataLength < movieData.length) {
+                AttachBlockObserver();
+            }
+            
+        }
+        movieDataLength = movieData.length;
     }
 
     if(request.message==="whiteList"){
-        console.log(request.onWhiteList);
-        if(request.onWhiteList){
-
-        }
-        else {
+        if (request.onWhiteList && whiteListChecker == false) {
+            whiteListChecker = request.onWhiteList;   
+            window.location.reload();
+                    }
+        else if (!request.onWhiteList){
+            whiteListChercker = true;
             AttachBlockObserver();
+           //console.log(request.onWhiteList);
+            
         }
-    }
+        whiteListChecker = request.onWhiteList;   
 
-    if(request.message=='nlpReply'){
-        console.log('nlp: '+request.isSpoiler);
     }
 })
 
@@ -349,8 +627,3 @@ chrome.runtime.sendMessage({
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
-
-chrome.runtime.sendMessage({
-    message: 'nlpCheck',
-    data:'어벤져스에서 아이언맨 죽는다 ㅋㅋ'
-})
