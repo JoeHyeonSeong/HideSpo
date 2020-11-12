@@ -20,9 +20,12 @@
       "js": [ "contentscript.js" ]
     }
   ],
+  "web_accessible_resources": [
+    "data/wordindex.json"
+],
 "icons": {
     "128": "images/icon_green16.png"
   },
   "permissions": ["storage","tabs","<all_urls>"],
-  "content_security_policy": "script-src 'self' 'sha256-rjKktQHEfHFrJp13A9wSDGm2CltZ3FemgRZvVJWtBgU'; object-src 'self'"
+  "content_security_policy": "script-src 'self' 'unsafe-eval' 'sha256-rjKktQHEfHFrJp13A9wSDGm2CltZ3FemgRZvVJWtBgU'; object-src 'self'"
 }

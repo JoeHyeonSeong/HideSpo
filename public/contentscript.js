@@ -58,6 +58,7 @@ TABLE_TEXT = "<table data-replacer-element-marker='true'" +
     var movieDataLength=-1;
     var whiteListChecker;
     var blockColor='#1d9a89';
+    var observerAttached=true;
 isNullOrEmpty = function (value) {
     return value === null ||
         value === undefined ||
@@ -317,7 +318,7 @@ findTargetParent = function (curNode) {
         return null;
     }
     var siblingNodes = parentNode.childNodes;
-    if (curNode.nodeName == "body")
+    if (curNode.nodeName == "LI")
         return curNode;
     for (n of siblingNodes) {
         if (n != curNode &&
@@ -572,14 +573,16 @@ AttachBlockObserver = function () {
 
     // define what element should be observed by the observer
     // and what types of mutations trigger the callback
-    observer.observe(document, {
-        subtree: true,
-        //childList: true,
-        //characterData:true
-        attributeOldValue: true,
-        //...
-    });
-
+    if (!observerAttached) {
+        observer.observe(document, {
+            subtree: true,
+            //childList: true,
+            //characterData:true
+            attributeOldValue: true,
+            //...
+        });
+        observerAttached = false;
+    }
 }
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -617,6 +620,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         whiteListChecker = request.onWhiteList;   
 
     }
+    if(request.message=='nlpReply'){
+        console.log('nlp: '+request.isSpoiler);
+    }
 })
 
 
@@ -627,3 +633,11 @@ chrome.runtime.sendMessage({
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
+/*
+chrome.runtime.sendMessage({
+    message: 'nlpCheck',
+    data:'어벤져스에서 아이언맨 죽는다 ㅋㅋ'
+}) 
+
+*/
+console.log('hi');
