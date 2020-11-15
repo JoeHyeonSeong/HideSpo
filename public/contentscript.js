@@ -633,11 +633,11 @@ chrome.runtime.sendMessage({
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
-/*
+
 chrome.runtime.sendMessage({
     message: 'nlpCheck',
-    data:'어벤져스에서 아이언맨 죽는다 ㅋㅋ'
+    data:'가족이랑 봐도 좋을만한 영화입니다'
 }) 
 
-*/
+
 console.log('hi');

@@ -1,11 +1,11 @@
-/*
+
 const start = async function () {
-    const model = await tf.loadLayersModel('./datas/model.json');
+    const model = await tf.loadLayersModel('./datas/spoilerModel/model.json');
     return model;
 }
 
 const model = start();
-*/
+
 let whiteList = [];
 let movieData;
 let blockPower;
@@ -15,7 +15,7 @@ try {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
             movieData = (typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
             blockPower = (typeof items.blockPower == "undefined") ? 1 : items.blockPower;
-            
+
             console.log(items);
         });
 }
@@ -26,7 +26,7 @@ const url = chrome.runtime.getURL('datas/wordindex.json');
 let wordindex;
 fetch(url)
     .then((response) => response.json()) //assuming file contains json
-    .then((json) => wordindex=json);
+    .then((json) => wordindex = json);
 
 chrome.tabs.onUpdated.addListener(
     function (tabId, changeInfo, tab) {
@@ -56,41 +56,38 @@ chrome.tabs.onActivated.addListener(
 
 );
 
-chrome.runtime.onMessage.addListener( async function(request,sender,sendResponse)
-{
+chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     console.log('sender');
     console.log(sender);
-    if( request.message === "whiteListAdd" )
-    {
+    if (request.message === "whiteListAdd") {
         console.log("add");
         console.log(request.url);
-        let url=request.url;
+        let url = request.url;
         addWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
     }
-    else if( request.message === "whiteListDelete" )
-    {
+    else if (request.message === "whiteListDelete") {
         console.log("delete");
-        let url=request.url;
+        let url = request.url;
         deleteWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
     }
-    else if(request.message==="whiteListCheck"){
+    else if (request.message === "whiteListCheck") {
         console.log('check');
-        let url=request.url;
+        let url = request.url;
         sendWhiteList_popup(url);
-    }else if(request.message==="whiteListCheck_content"){
+    } else if (request.message === "whiteListCheck_content") {
         sendWhiteList_content();
-    }else if(request.message==="getMovieData"){
+    } else if (request.message === "getMovieData") {
         updateContentScript();
-    }else if(request.message==='setMovieData'){
-        movieData=request.movieData;
+    } else if (request.message === 'setMovieData') {
+        movieData = request.movieData;
         chrome.storage.sync.set({ 'movieDatas': movieData });
         updateContentScript();
-    }else if(request.message==='blockPowerChange'){
-        blockPower=request.blockPower;
+    } else if (request.message === 'blockPowerChange') {
+        blockPower = request.blockPower;
         chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
@@ -122,20 +119,20 @@ function sendWhiteList_content() {
     });
 }
 
-function sendWhiteList_popup(trimUrl){
+function sendWhiteList_popup(trimUrl) {
     chrome.runtime.sendMessage({
         message: 'whiteList',
         onWhiteList: isOnWhiteList(trimUrl)
     });
 }
 
-function updateContentScript(){
+function updateContentScript() {
     chrome.runtime.sendMessage({
         message: 'getMovieDataReply',
         movieData: movieData,
         blockPower: blockPower
     });
-    chrome.tabs.query({ active: true}, function (tabs) {
+    chrome.tabs.query({ active: true }, function (tabs) {
         var currTab = tabs[0];
         console.log(tabs);
         if (currTab) { // Sanity check
@@ -173,14 +170,14 @@ function deleteWhiteList(url) {
     iconCheck(url);
 }
 
-function trimUrl(url){
+function trimUrl(url) {
     let i = 0;
     let cnt = 0;
     for (; i < url.length; i++) {
         if (url[i] === '/') {
             cnt++;
             if (cnt === 3)
-                return url.substring(0,i);
+                return url.substring(0, i);
         }
     }
     return url;
@@ -188,43 +185,40 @@ function trimUrl(url){
 
 function isOnWhiteList(url) {
     for (wh of whiteList) {
-        if (wh === url){
+        if (wh === url) {
             return true;
         }
     }
     return false;
 }
 
-async function spoilerCheck(str){
-    let pre=await preprocess(str);
-    console.log(pre);
-    return nlpCheck(pre);
+async function spoilerCheck(str) {
+    let words = await preprocess(str);
+    return nlpCheck(words);
 }
 
-async function preprocess(str){
+async function preprocess(str) {
     let response = await fetch("https://open-korean-text-api.herokuapp.com/tokenize?text=" + str);
     if (response.ok) {
         let json = await response.json();
-        let words=[];
+        let words = [];
         for (let token of json.tokens) {
             let split = token.split(/:|\(/);
             let blockPumsa = ['Punctuation', 'Foreign', 'Alpha', 'URL', "ScreenName", "Josa"];
             if (!blockPumsa.includes(split[1])) {
                 let newWord = split[0];
-                if(split[1]=='Noun')
-                    newWord=properNounLabel(split[0])
+                if (split[1] == 'Noun')
+                    newWord = properNounLabel(split[0])
                 words.push(newWord);
             }
         }
-        let sentence = words.join(' ').trim();
-        console.log(sentence);
-        return sentence;
+        return words;
     }
     return null;
 }
 
 function properNounLabel(word) {
-    for(let info of movieData){
+    for (let info of movieData) {
         if (info.title.trim() == word)
             return "<타이틀>";
         for (let director in info.director)
@@ -237,9 +231,38 @@ function properNounLabel(word) {
     return word;
 }
 
-function nlpCheck(str){
-    //console.log(model);
-    console.log(wordindex);
-    return true;
+function nlpCheck(words) {
+    const max_len = 41;
+    var indexArr = new Array(max_len).fill(0);
+    var isSpoiler=false;
+    //------------wordindex ġȯ--------------
+    for (var i in words) {
+        if (wordindex[words[i]] != undefined) {
+            indexArr[i] = wordindex[words[i]];
+        } else {
+            indexArr[i] = 1;
+        }
+    }
+    //----------model load and predict--------
+    model.then(function (res) {
+
+        const shape = [1, max_len];
+        const example = tf.tensor(indexArr, shape);
+        example.print();
+
+        const prediction = res.predict(example);
+        console.log(prediction);//prediction�� Tensor info
+        const tensorData = prediction.dataSync();
+
+        if (tensorData[1] > 0.5) {
+            isSpoiler=true;
+        } else {
+            isSpoiler=false;
+        }
+
+    }, function (err) {
+        console.log('Model Loading Error!');
+    });
+    return isSpoiler;
 }
 
