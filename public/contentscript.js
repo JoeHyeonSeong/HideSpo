@@ -11,6 +11,7 @@
     TEXT_FORMATTING_ELEMENTS = ["B", "EM", "I", "SMALL", "STRONG", "SUB", "SUP", "INS", "DEL", "MARK"]
     NOT_TEXT_FORMATTING_ELEMENTS_STRING = ":not(b):not(em):not(i):not(small):not(strong):not(sub):not(sup):not(ins):not(del):not(mark)"
     NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP = /[^ㄱ-ㅎ가-힣a-z0-9]/
+    ONLY_NUMBER = /[0-9]/
     NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP = "[^ㄱ-ㅎ가-힣a-z0-9]?"
     NUMBER_OR_LETTER_OUTSIDE_REG_EXP = /[ㄱ-ㅎ가-힣a-z0-9]/
 
@@ -69,10 +70,13 @@ isNullOrEmpty = function (value) {
 String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
 }
-shouldReplaceText = function (text) {
+shouldReplaceText = function (node,text,nodeType) {
 
     var res = {};
+    var titleSpoiler = null;
+    var actorSpoiler = null;
     var temp = null;
+    var textIndex = null;
     res.shouldReplace = false;
     var trimmedText = text.replace('↵', "").trim();
     if (trimmedText.length > 0) {
@@ -87,66 +91,105 @@ shouldReplaceText = function (text) {
             if (isNullOrEmpty(normalizeLowerText.match(NUMBER_OR_LETTER_OUTSIDE_REG_EXP))) {
                 temp = null;
             }
+            for (var i = 0; i < movieData.length; i++) {
+                var actorAndDirector = movieData[i].actor.concat(movieData[i].director);
+                for (var j = 0; j < actorAndDirector.length; j++) {
+                    var spoilerString = "";
+                    spoilerString = actorAndDirector[j].replaceAll(ONLY_NUMBER, "").trim();
+                    console.log(spoilerString);
+                    var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
+                    if (normalizedLowerSpoilerString == "")
+                        continue;
+                    if (normalizedLowerSpoilerString.split(" ").length === 1) {
 
-            switch (level) {
-                case 3:
-                    for (var i = 0; i < movieData.length; i++) {
-                        var actorAndDirector = movieData[i].actor.concat(movieData[i].director);
-                        for (var j = 0; j < actorAndDirector.length; j++) {
-                            var spoilerString = "";
-                            spoilerString = actorAndDirector[j].trim();
-                            var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
-                            if (normalizedLowerSpoilerString == "")
-                                continue;
-                            if (normalizedLowerSpoilerString.split(" ").length === 1) {
-
-                                if (
-                                    (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                    (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                    (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                                    (normalizedLowerSpoilerString === normalizeLowerText)) {
-                                    temp = spoilerString;
-                                }
-                            } else {
-                                
-                                var splitByBlank = normalizedLowerSpoilerString.split(" ");
-                                for (var k = 0; k < splitByBlank.length; k++) {
-
-                                    var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                    var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                    if (compareText.includes(compareSpoilerString)) {
-                                        temp = spoilerString;
-                                    }
-                                }
-                            }
+                        if (
+                            (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                            (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                            (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
+                            (normalizedLowerSpoilerString === normalizeLowerText)) {
+                            actorSpoiler = spoilerString;
                         }
-                    }
-                case 2:
-                    for (var i = 0; i < movieData.length; i++) {
-                        var spoilerString = ""
-                        spoilerString = movieData[i].title.trim();
-                        //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
-                        var normalizedLowerSpoilerString = spoilerString;
-                        if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
+                    } else {
 
-                            if (
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                                (normalizedLowerSpoilerString === normalizeLowerText)) {
-                                temp = spoilerString;
+                        var splitByBlank = normalizedLowerSpoilerString.split(" ");
+                        for (var k = 0; k < splitByBlank.length; k++) {
 
-                            }
-                        } else {
-                            var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                            var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
                             var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
                             if (compareText.includes(compareSpoilerString)) {
-                                temp = spoilerString;
+                                actorSpoiler = spoilerString;
                             }
                         }
                     }
+                }
+            }
+            for (var i = 0; i < movieData.length; i++) {
+                var spoilerString = ""
+                spoilerString = movieData[i].title.trim();
+                //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
+                var normalizedLowerSpoilerString = spoilerString;
+                if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
+
+                    if (
+                        (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                        (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                        (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
+                        (normalizedLowerSpoilerString === normalizeLowerText)) {
+                        titleSpoiler = spoilerString;
+
+                    }
+                } else {
+                    var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                    var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                    if (compareText.includes(compareSpoilerString)) {
+                        titleSpoiler = spoilerString;
+                    }
+                }
+            }
+            switch (level) {
+                case 3:
+                    if (actorSpoiler != null)
+                        temp = actorSpoiler;
+                case 2:
+                    if (titleSpoiler != null)
+                        temp = titleSpoiler;
+                    break;
                 case 1:
                     //의미 구분 영역
+                    
+                    if (actorSpoiler != null || titleSpoiler != null) {
+                        console.log(actorSpoiler);
+                        console.log(titleSpoiler);
+
+                        chrome.runtime.sendMessage({
+                            message: 'nlpCheck',
+                            data: trimmedText
+                        });
+                        console.log(trimmedText);
+                        chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
+                            if (request.message == 'nlpReply') {
+                        
+                                if (request.isSpoiler) {
+                                    temp = trimmedText;
+                                    textCache.push(trimmedText);
+                                    spoilerStringCache.push(temp);
+                                    textIndex = textCache.indexOf(trimmedText);
+                                    res.alternateText = '스포일러';
+                                    res.shouldReplace = true;
+                                    if (nodeType == 1)
+                                        markToReplace_a(node, res);
+                                    if (nodeType == 2) {
+                                        markToReplace_text(node.parentElement, res);
+
+                                    }
+
+                                    createReplaceDivs(node);
+                                }
+                             }
+                        })
+                    }
+                    
                 default:
                     break;
             }
@@ -154,8 +197,10 @@ shouldReplaceText = function (text) {
 
             textCache.push(trimmedText);
             spoilerStringCache.push(temp);
+            
         }
-        var textIndex = textCache.indexOf(trimmedText);
+        textIndex = textCache.indexOf(trimmedText);
+        //console.log(textCache);
         //set the spoilerstring what will appear on the replaced div
         res.alternateText = spoilerStringCache[textIndex];
         //if spoilerstring has been found, do the replace at the caller
@@ -192,9 +237,9 @@ markToReplace_childNodes = function (node) {
 
             //a sometimes contains inner elements, so we have to start with A replacement
             if (toLowerchildNodeName === "a") {
-                markToReplace_a(child);
+                checkToReplace_a(child);
             } else if (toLowerchildNodeName === "#text") {
-                markToReplace_text(child);
+                checkToReplace_text(child);
             }/* else if (toLowerchildNodeName === "img") {
             core.markAndReplace.markToReplace_image(child);
         }*/ else {
@@ -261,23 +306,36 @@ markElementForReplaceDivAndHide= function(elementToReplace, displayString) {
     elementToReplace.setAttribute(ORIGINAL_WIDTH_ATTRIBUTE_NAME, elementToReplaceWidth);
     elementToReplace.setAttribute(ORIGINAL_HEIGHT_ATTRIBUTE_NAME, elementToReplaceHeight);
     elementToReplace.setAttribute(ATTRIBUTE_FOR_SPONONO, true);
+    recursiveSetSponono(elementToReplace);
     elementToReplace.style.display = "none";
-    //elementToReplace.style.visibility = 'hidden';
-    //elementToReplace.setAttribute("hidden", true);
-    
 }
-
-markToReplace_a = function (a) {
+recursiveSetSponono = function (node) {
+    if (node.hasChildNodes()) {
+        node.childNodes.forEach(function (child) {
+            if (node.nodeType == 1) {
+                node.setAttribute(ATTRIBUTE_FOR_SPONONO, true);
+                recursiveSetSponono(child);
+            }
+        });
+    }
+}
+checkToReplace_a = function (a) {
     var replace;
     if (a.innerText) {
-        replace = shouldReplaceText(a.innerText);
+        replace = shouldReplaceText(a,a.innerText,1);
     }
     //if  a.innerText failed to match               
     if (a.href && (!replace || replace && !replace.shouldReplace)) {
-        replace = shouldReplaceText(a.href);
+        replace = shouldReplaceText(a,a.href);
     }
-    
+
     if (replace && replace.shouldReplace) {
+        markToReplace_a(a, replace);
+    }
+}
+
+markToReplace_a = function (a, replace) {
+    
         //if the link is in paragraph
         var aOrParent = a;
         if (a.parentElement.nodeName.toLowerCase() == "p") {
@@ -296,7 +354,6 @@ markToReplace_a = function (a) {
             //elementToReplace.setAttribute('needWhite', 'yes');
             //elementToReplace.style.backgroundColor = "#1d9a89";
             
-
             elementToReplace.querySelectorAll("img").forEach(function (el) {
                 el.setAttribute("style", "display: none;");
             });
@@ -305,11 +362,53 @@ markToReplace_a = function (a) {
                     el.setAttribute("style", "display: none;");
                 });
             }
-
+            
             markElementForReplaceDivAndHide(elementToReplace, replace.alternateText);
 
         }
+}
+
+checkToReplace_text = function (textNode) {
+    var replace = shouldReplaceText(textNode,textNode.data,2);
+
+    if (replace && replace.shouldReplace) {
+        markToReplace_text(textNode.parentElement,replace);
     }
+}
+markToReplace_text = function (textNode, replace) {
+    //console.log(textNode.parentElement);
+        var elementToReplace;
+        var textNodeParentElement = textNode;
+        //if the parent is a formatter, we will find the first nonformatter parent, that should be replaced
+        elementToReplace = findTargetParent(textNode);
+        if (elementToReplace === null) {
+            if (TEXT_FORMATTING_ELEMENTS.includes(textNodeParentElement.nodeName)) {
+                var closestNonFormattingParent = textNodeParentElement.closest(NOT_TEXT_FORMATTING_ELEMENTS_STRING);
+                elementToReplace = closestNonFormattingParent;
+            } else {
+                elementToReplace = textNode;
+            }
+        }
+        if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
+            
+
+            //elementToReplace.style.color = blockColor;
+            /*elementToReplace.style.backgroundColor = blockColor;
+
+            elementToReplace.childNodes.forEach(function (el) {
+
+                el.innerHTML = replace.alternateText;
+            });*/
+
+            /*var curUrl = window.location.hostname;
+            var c = elementToReplace.children;
+            for (var i = 0; i < c.length; i++) {
+                c[i].style.color = "white";
+            }*/
+            markElementForReplaceDivAndHide(elementToReplace, replace.alternateText);
+        }
+        
+    
 }
 
 findTargetParent = function (curNode) {
@@ -332,44 +431,6 @@ findTargetParent = function (curNode) {
     return findTargetParent(parentNode);
 }
 
-markToReplace_text = function (textNode) {
-    var replace = shouldReplaceText(textNode.data);
-
-
-    if (replace && replace.shouldReplace) {
-        var elementToReplace;
-        var textNodeParentElement = textNode.parentElement;
-        //if the parent is a formatter, we will find the first nonformatter parent, that should be replaced
-        elementToReplace = findTargetParent(textNode);
-        if (elementToReplace === null) {
-            if (TEXT_FORMATTING_ELEMENTS.includes(textNodeParentElement.nodeName)) {
-                var closestNonFormattingParent = textNodeParentElement.closest(NOT_TEXT_FORMATTING_ELEMENTS_STRING);
-                elementToReplace = closestNonFormattingParent;
-            } else {
-                elementToReplace = textNode.parentElement;
-            }
-        }
-        if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
-            
-
-            //elementToReplace.style.color = blockColor;
-            /*elementToReplace.style.backgroundColor = blockColor;
-
-            elementToReplace.childNodes.forEach(function (el) {
-
-                el.innerHTML = replace.alternateText;
-            });*/
-
-            /*var curUrl = window.location.hostname;
-            var c = elementToReplace.children;
-            for (var i = 0; i < c.length; i++) {
-                c[i].style.color = "white";
-            }*/
-            markElementForReplaceDivAndHide(elementToReplace, replace.alternateText);
-        }
-        
-    }
-}
 find_children = function (parentNode) {
     if (parentNode.children.length != 0) {
         var youtubeC = parentNode.children;
@@ -449,7 +510,9 @@ createReplaceDivs = function (node) {
         overlayTable.addEventListener("click", function (e) {
             e.preventDefault();
             e.stopPropagation();
-            showOriginalElement(e);
+            if (confirm("정말 차단을 해제하시겠습니까?")) {
+                showOriginalElement(e);
+            }
             return false;
         }, false);
         
@@ -545,7 +608,20 @@ zenofunc = function (mutation) {
     spoilerStringCache = [];
 }
 
+/* 부모 속성 확인용 함수 node[0]에 한해서 ture 반환 찍힘에도 undefined 반환함
+checkParentAttributeSponono = function (node) {
+    if (node.hasAttribute(ATTRIBUTE_FOR_SPONONO)) {
+        console.log("true 반환");
+        return true;
+    }
+    else if (node.parentElement == undefined) {
+        console.log(node);
+        return false;
+    }
+    else
+        checkParentAttributeSponono(node.parentNode);
 
+}*/
 AttachBlockObserver = function () {
         
     if (movieData.length == 0)
@@ -567,7 +643,13 @@ AttachBlockObserver = function () {
             }
             
         }
+    /* 부모 속성 확인용 함수 node[0]에 한해서 ture 반환 찍힘에도 undefined 반환함
+         if (!checkParentAttributeSponono(mutations[i].target)) {
 
+            console.log(mutations[i]);
+            zenofunc(mutations[i].target);
+
+        }*/
         // ...
     });
 
@@ -620,11 +702,27 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         whiteListChecker = request.onWhiteList;   
 
     }
-    if(request.message=='nlpReply'){
-        console.log('nlp: '+request.isSpoiler);
-    }
-})
+    /*if (request.message == 'nlpReply') {
 
+        if (request.isSpoiler) {
+            var replace = {};
+            replace.shouldReplace = true;
+            replace.alternateText = "ssss0";
+            var ttext = request.data;
+            console.log(ttext);
+            console.log($(":contains('"+ttext+"')").not(":has(:contains('"+ttext+"'))"));
+            var ttextNode = $(":contains('" + ttext + "')").not(":has(:contains('" + ttext + "'))");
+
+
+            for (var i = 0; i < ttextNode.length; i++) {
+                //console.log(ttextNode[i]);
+                markToReplace_text([i], replace);
+            }
+        }
+        }
+        */
+    
+})
 
 chrome.runtime.sendMessage({
     message: 'getMovieData'
@@ -633,11 +731,11 @@ chrome.runtime.sendMessage({
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
-
+/*
 chrome.runtime.sendMessage({
     message: 'nlpCheck',
     data:'가족이랑 봐도 좋을만한 영화입니다'
-}) 
+}) */
 
 
 console.log('hi');
