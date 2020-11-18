@@ -91,14 +91,13 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
-        spoilerCheck(request.data).then(isSpoiler => {
-            chrome.tabs.sendMessage(sender.tab.id,
-                {
-                    message: 'nlpReply',
-                    isSpoiler: true ,
-                    data: request.data
-                });
-        });
+        let isSpoiler=await spoilerCheck(request.data);
+        chrome.tabs.sendMessage(sender.tab.id,
+            {
+                message: 'nlpReply',
+                isSpoiler: isSpoiler,
+                data: request.data
+            });
     }
 });
 
@@ -222,17 +221,20 @@ function properNounLabel(word) {
     for (let info of movieData) {
         if (info.title.trim() == word)
             return "<타이틀>";
-        for (let director in info.director)
+        for (let director of info.director){
             if (director.trim() == word)
                 return "<감독>";
-        for (let actor in info.actor)
+        }
+        for (let actor of info.actor){
             if (actor.trim() == word)
                 return "<배우>";
+        }
     }
     return word;
 }
 
-function nlpCheck(words) {
+async function nlpCheck(words) {
+    console.log(words);
     const max_len = 41;
     var indexArr = new Array(max_len).fill(0);
     var isSpoiler=false;
@@ -245,22 +247,21 @@ function nlpCheck(words) {
         }
     }
     //----------model load and predict--------
-    model.then(function (res) {
+    await model.then(function (res) {
 
         const shape = [1, max_len];
         const example = tf.tensor(indexArr, shape);
-        example.print();
+        //example.print();
 
         const prediction = res.predict(example);
-        console.log(prediction);//prediction�� Tensor info
+        //console.log(prediction);//prediction�� Tensor info
         const tensorData = prediction.dataSync();
-
+        console.log(tensorData[1]);
         if (tensorData[1] > 0.5) {
             isSpoiler=true;
         } else {
             isSpoiler=false;
         }
-
     }, function (err) {
         console.log('Model Loading Error!');
     });

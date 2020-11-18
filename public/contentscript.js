@@ -96,7 +96,6 @@ shouldReplaceText = function (node,text,nodeType) {
                 for (var j = 0; j < actorAndDirector.length; j++) {
                     var spoilerString = "";
                     spoilerString = actorAndDirector[j].replaceAll(ONLY_NUMBER, "").trim();
-                    console.log(spoilerString);
                     var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
                     if (normalizedLowerSpoilerString == "")
                         continue;
@@ -169,7 +168,7 @@ shouldReplaceText = function (node,text,nodeType) {
                         chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
                             if (request.message == 'nlpReply') {
-                        
+                                console.log(request)
                                 if (request.isSpoiler) {
                                     temp = trimmedText;
                                     textCache.push(trimmedText);
