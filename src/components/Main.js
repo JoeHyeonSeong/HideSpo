@@ -73,8 +73,8 @@ class Main extends Component {
     blockPowerText = [
         '스포일러를 차단하지 않습니다.',
         '의미를 분석해 차단합니다.',
-        '영화 제목이 포함된 모든 문장을 차단합니다.',
-        '영화 관련 정보가 포함된 모든 문장을 차단합니다.'
+        '영화의 제목이 포함된 문장을 차단합니다.',
+        '영화의 제목, 감독, 배우, 배역이 포함된 문장을 차단합니다.'
     ];
     componentDidMount() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -177,10 +177,18 @@ class Main extends Component {
         trimData.director = value.directors.director.map(d => d.directorNm);
         trimData.actor = [];
         trimData.poster = value.poster;
+
+        let actorCnt=0;
         for (let s of value.staffs.staff) {
             if (s.staffRoleGroup == '출연') {
                 trimData.actor.push(s.staffNm);
-                trimData.actor = trimData.actor.concat(s.staffRole.split('/'));
+                actorCnt+=1;
+                let role=s.staffRole.split('/');
+                for(let r of role)
+                    if(r.length>0)
+                        trimData.actor.push(r);
+                if(actorCnt>=5)
+                    break;
             }
         }
         for (let m of this.state.movieDatas) {
