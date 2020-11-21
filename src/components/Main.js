@@ -187,7 +187,7 @@ class Main extends Component {
                 for(let r of role)
                     if(r.length>0)
                         trimData.actor.push(r);
-                if(actorCnt>=5)
+                if(actorCnt>=8)
                     break;
             }
         }
