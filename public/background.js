@@ -5,7 +5,7 @@ const start = async function () {
 }
 
 const model = start();
-
+const actorNum=5;
 let whiteList = [];
 let movieData;
 let blockPower;
@@ -27,6 +27,12 @@ let wordindex;
 fetch(url)
     .then((response) => response.json()) //assuming file contains json
     .then((json) => wordindex = json);
+
+const nounUrl = chrome.runtime.getURL('datas/nouns.json');
+let nouns;
+fetch(nounUrl)
+    .then((response) => response.json()) //assuming file contains json
+    .then((json) => nouns = json);
 
 chrome.tabs.onUpdated.addListener(
     function (tabId, changeInfo, tab) {
@@ -83,7 +89,11 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     } else if (request.message === "getMovieData") {
         updateContentScript();
     } else if (request.message === 'setMovieData') {
-        movieData = request.movieData;
+        let newData = request.movieData;
+        if (request.add) {
+            newData = trimRole(newData);
+        }
+        movieData = newData;
         chrome.storage.sync.set({ 'movieDatas': movieData });
         updateContentScript();
     } else if (request.message === 'blockPowerChange') {
@@ -100,9 +110,37 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
                 nodeNumber: request.nodeNumber,
                 nodeType: request.nodeType
             });
+    }else if(request.message === 'wordExist'){
+        chrome.runtime.sendMessage({
+            message: 'wordExistReply',
+            exist: wordExist(word),
+        });
     }
 });
 
+function trimRole(newData){
+    let movie=newData[newData.length-1];
+    let actors=[];
+    console.log(movie);
+    for(let a of movie.actor.slice(0,actorNum)){
+        actors.push(a);
+    }
+    for(let a of movie.actor.slice(actorNum)){
+        let words=a.split(' ');
+        let combine="";
+        for(let w of words){
+            if(!wordExist(w)){
+                combine=combine+" "+w;
+            }
+        }
+        combine=combine.trim();
+        if(combine!="")
+            actors.push(combine.trim());
+    }
+    console.log(actors);
+    movie.actor=actors;
+    return newData;
+}
 function sendWhiteList_content() {
 
     chrome.tabs.query({ active: true }, function (tabs) {
@@ -270,3 +308,8 @@ async function nlpCheck(words) {
     return isSpoiler;
 }
 
+function wordExist(word) {
+    console.log(word);
+    console.log(wordindex[word]);
+    return nouns.data.find(element=>word==element) != undefined;
+}

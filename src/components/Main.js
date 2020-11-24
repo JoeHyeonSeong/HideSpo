@@ -177,34 +177,34 @@ class Main extends Component {
         trimData.director = value.directors.director.map(d => d.directorNm);
         trimData.actor = [];
         trimData.poster = value.poster;
-
         let actorCnt=0;
+        let roles=[];
         for (let s of value.staffs.staff) {
             if (s.staffRoleGroup == '출연') {
                 trimData.actor.push(s.staffNm);
                 actorCnt+=1;
                 let role=s.staffRole.split('/');
-                for(let r of role)
-                    if(r.length>0)
-                        trimData.actor.push(r);
-                if(actorCnt>=8)
+                roles=roles.concat(role);
+                if(actorCnt>=5)
                     break;
             }
         }
+        trimData.actor=trimData.actor.concat(roles);
         for (let m of this.state.movieDatas) {
             if (trimData.title === m.title && trimData.prodYear === m.prodYear) {
                 this.handleClose();
                 return;
             }
         }
-        console.log(trimData);
         let newDatas = this.state.movieDatas.concat(trimData);
         this.setState({
             movieDatas: newDatas
         });
+        console.log(newDatas);
         chrome.runtime.sendMessage({
             message: 'setMovieData',
-            movieData: newDatas
+            movieData: newDatas,
+            add:true
         });
         this.handleClose();
     }
@@ -219,7 +219,8 @@ class Main extends Component {
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
-            movieData: newDatas
+            movieData: newDatas,
+            add:false
         });
     }
 
