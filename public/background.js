@@ -96,7 +96,9 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             {
                 message: 'nlpReply',
                 isSpoiler: isSpoiler,
-                data: request.data
+                data: request.data,
+                nodeNumber: request.nodeNumber,
+                nodeType: request.nodeType
             });
     }
 });
