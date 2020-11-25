@@ -90,147 +90,134 @@ shouldReplaceText = function (node,text,nodeType) {
 
         if (textCache.indexOf(trimmedText) == -1) {
             var normalizeLowerText;
-            var beforeSplitNormalizeLowerText;
+
             //normalizeLowerText = text.normalizeString().toLowerCase(); extends 추가했는데 인식 불가
-            beforeSplitNormalizeLowerText = trimmedText.toLowerCase();
+            normalizeLowerText = trimmedText.toLowerCase();
 
-            var splitByNewLine = beforeSplitNormalizeLowerText.split("\n");
-            for (var k = 0; k < splitByNewLine.length; k++) {
-
-                normalizeLowerText = splitByNewLine[k];
-
-                //there is no letter or number in the text
-                if (isNullOrEmpty(normalizeLowerText.match(NUMBER_OR_LETTER_OUTSIDE_REG_EXP))) {
-                    temp = null;
-                }
-                for (var i = 0; i < movieData.length; i++) {
-                    actor = movieData[i].actor.concat(movieData[i].director);
-                    for (var j = 0; j < actor.length; j++) {
-                        var spoilerString = "";
-                        spoilerString = actor[j].replaceAll(ONLY_NUMBER, "").trim();
-                        var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
-                        if (normalizedLowerSpoilerString == "")
-                            continue;
-                        if (normalizedLowerSpoilerString.split(" ").length === 1) {
-                            if (
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                                (normalizedLowerSpoilerString === normalizeLowerText)) {
-                                actorSpoiler = spoilerString;
-                                trimmedText = trimmedText.replace(spoilerString, "<배우>");
-                            }
-                        } else {
-
-                            var splitByBlank = normalizedLowerSpoilerString.split(" ");
-                            for (var k = 0; k < splitByBlank.length; k++) {
-                                if (splitByBlank[k].length == 1) {
-                                    continue;
-                                }
-                                var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                if (compareText.includes(compareSpoilerString)) {
-                                    actorSpoiler = spoilerString;
-                                    trimmedText = trimmedText.replace(actorSpoiler, "<배우>");
-                                }
-                            }
-                        }
-                    }
-                    var director = movieData[i].director;
-                    for (var j = 0; j < director.length; j++) {
-                        var spoilerString = "";
-                        spoilerString = director[j].replaceAll(ONLY_NUMBER, "").trim();
-                        var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
-                        if (normalizedLowerSpoilerString == "")
-                            continue;
-                        if (normalizedLowerSpoilerString.split(" ").length === 1) {
-
-                            if (
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                                (normalizedLowerSpoilerString === normalizeLowerText)) {
-                                directorSpoiler = spoilerString;
-                                trimmedText = trimmedText.replace(directorSpoiler, "<감독>");
-                            }
-                        } else {
-
-                            var splitByBlank = normalizedLowerSpoilerString.split(" ");
-                            for (var k = 0; k < splitByBlank.length; k++) {
-                                if (splitByBlank[k].length == 1) {
-                                    continue;
-                                }
-                                var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                if (compareText.includes(compareSpoilerString)) {
-                                    directorSpoiler = spoilerString;
-                                    trimmedText = trimmedText.replace(directorSpoiler, "<감독>");
-                                }
-                            }
-                        }
-                    }
-                }
-                for (var i = 0; i < movieData.length; i++) {
-                    var spoilerString = ""
-                    spoilerString = movieData[i].title.trim();
-                    //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
-                    var normalizedLowerSpoilerString = spoilerString;
-                    if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
-                    
+            //there is no letter or number in the text
+            if (isNullOrEmpty(normalizeLowerText.match(NUMBER_OR_LETTER_OUTSIDE_REG_EXP))) {
+                temp = null;
+            }
+            for (var i = 0; i < movieData.length; i++) {
+                actor = movieData[i].actor.concat(movieData[i].director);
+                for (var j = 0; j < actor.length; j++) {
+                    var spoilerString = "";
+                    spoilerString = actor[j].replaceAll(ONLY_NUMBER, "").trim();
+                    var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
+                    if (normalizedLowerSpoilerString == "")
+                        continue;
+                    if (normalizedLowerSpoilerString.split(" ").length === 1) {
                         if (
                             (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
                             (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
                             (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
                             (normalizedLowerSpoilerString === normalizeLowerText)) {
-                            titleSpoiler = spoilerString;
-                            trimmedText = trimmedText.replace(titleSpoiler, "<타이틀>");
+                            actorSpoiler = spoilerString;
+                            trimmedText = trimmedText.replace(spoilerString, "<배우>");
                         }
                     } else {
-                        var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                        var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                        if (compareText.includes(compareSpoilerString)) {
-                            titleSpoiler = spoilerString;
-                            trimmedText = trimmedText.replace(titleSpoiler, "<타이틀>");
+
+                        var splitByBlank = normalizedLowerSpoilerString.split(" ");
+                        for (var k = 0; k < splitByBlank.length; k++) {
+                            if (splitByBlank[k].length == 1) {
+                                continue;
+                            }
+                            var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                            var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                            if (compareText.includes(compareSpoilerString)) {
+                                actorSpoiler = spoilerString;
+                                trimmedText = trimmedText.replace(actorSpoiler, "<배우>");
+                            }
                         }
                     }
                 }
-                switch (level) {
-                    case 3:
-                        if (actorSpoiler != null)
-                            temp = actorSpoiler;
-                        if (directorSpoiler != null)
-                            temp = actorSpoiler;
-                    case 2:
-                        if (titleSpoiler != null)
-                            temp = titleSpoiler;
-                        break;
-                    case 1:
-                        //의미 구분 영역
+                var director = movieData[i].director;
+                for (var j = 0; j < director.length; j++) {
+                    var spoilerString = "";
+                    spoilerString = director[j].replaceAll(ONLY_NUMBER, "").trim();
+                    var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
+                    if (normalizedLowerSpoilerString == "")
+                        continue;
+                    if (normalizedLowerSpoilerString.split(" ").length === 1) {
 
-                        if (directorSpoiler != null || actorSpoiler != null || titleSpoiler != null) {
-                            if (nodeType == 1) {
-                                nodeMap.set(nodeCount, node);
-                            }
-                            else if (nodeType == 2) {
-                                nodeMap.set(nodeCount, node);
-                            }
-                            //console.log(nodeCount + "send" + trimmedText);
-                            //console.log(nodeMap.get(nodeCount));
-                            chrome.runtime.sendMessage({
-                                message: 'nlpCheck',
-                                data: trimmedText,
-                                nodeNumber: nodeCount,
-                                nodeType: nodeType
-                            });
-                            nodeCount++;
+                        if (
+                            (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                            (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                            (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
+                            (normalizedLowerSpoilerString === normalizeLowerText)) {
+                            directorSpoiler = spoilerString;
+                            trimmedText = trimmedText.replace(directorSpoiler, "<감독>");
                         }
+                    } else {
+
+                        var splitByBlank = normalizedLowerSpoilerString.split(" ");
+                        for (var k = 0; k < splitByBlank.length; k++) {
+                            if (splitByBlank[k].length == 1) {
+                                continue;
+                            }
+                            var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                            var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                            if (compareText.includes(compareSpoilerString)) {
+                                directorSpoiler = spoilerString;
+                                trimmedText = trimmedText.replace(directorSpoiler, "<감독>");
+                            }
+                        }
+                    }
+                }
+            }
+            for (var i = 0; i < movieData.length; i++) {
+                var spoilerString = ""
+                spoilerString = movieData[i].title.trim();
+                //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
+                var normalizedLowerSpoilerString = spoilerString;
+                if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
                     
-                    default:
-                        break;
-                }            
-                textCache.push(trimmedText);
-                spoilerStringCache.push(temp);
+                    if (
+                        (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                        (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
+                        (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
+                        (normalizedLowerSpoilerString === normalizeLowerText)) {
+                        titleSpoiler = spoilerString;
+                        trimmedText = trimmedText.replace(titleSpoiler, "<타이틀>");
+                    }
+                } else {
+                    var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                    var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
+                    if (compareText.includes(compareSpoilerString)) {
+                        titleSpoiler = spoilerString;
+                        trimmedText = trimmedText.replace(titleSpoiler, "<타이틀>");
+                    }
+                }
+            }
+            switch (level) {
+                case 1:
+                    if (directorSpoiler != null || actorSpoiler != null || titleSpoiler != null) {
+
+                        nodeMap.set(nodeCount, node);
+
+                        chrome.runtime.sendMessage({
+                            message: 'nlpCheck',
+                            data: trimmedText,
+                            nodeNumber: nodeCount,
+                            nodeType: nodeType
+                        });
+                        nodeCount++;
+                    }
+                case 3:
+                    if (actorSpoiler != null)
+                        temp = actorSpoiler;
+                    if (directorSpoiler != null)
+                        temp = actorSpoiler;
+                case 2:
+                    if (titleSpoiler != null)
+                        temp = titleSpoiler;
+                    break;
+                    
+                default:
+                    break;
             }            
+            textCache.push(trimmedText);
+            spoilerStringCache.push(temp);            
         }
         textIndex = textCache.indexOf(trimmedText);
         //console.log(textCache);
@@ -695,8 +682,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         movieData = request.movieData;
         if (movieDataLength > movieData.length || (movieData.length == 0 && movieDataLength == 1))
             window.location.reload();
-        if (level != request.blockPower && level != -1) {
-            
+        if (level != request.blockPower && level != -1) {            
             window.location.reload();
         }
         level = request.blockPower;
@@ -721,16 +707,47 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         whiteListChecker = request.onWhiteList;   
     }
     if (request.message == 'nlpReply') {
-        if (request.isSpoiler) {
-            globalReplace.alternateText = '스포일러';
-            globalReplace.shouldReplace = true;
-            nodeMap.get(request.nodeNumber);
+        if (!request.isSpoiler) {
+            var elementToRecover;
+            var replaceDiv;
+            //globalReplace.alternateText = '스포일러';
+            //globalReplace.shouldReplace = true;
+            notSpoilerNode = nodeMap.get(request.nodeNumber);
             if (request.nodeType == 1) {
-                markToReplace_a(nodeMap.get(request.nodeNumber), globalReplace);
+                var aOrParent = notSpoilerNode;
+                if (notSpoilerNode.parentElement.nodeName.toLowerCase() == "p") {
+                    aOrParent = notSpoilerNode.parentElement;
+                }
+                elementToRecover = aOrParent;
+                elementToRecover = findTargetParent(notSpoilerNode);
+                if (elementToRecover === null)
+                    elementToRecover = aOrParent;
+                var siblingNodes = elementToRecover.parentElement.children;
+                for (var n = 0; n < siblingNodes.length; n++) {
+                    replaceDiv = siblingNodes[n].closest("[" + REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME + "='true']");
+                    if (replaceDiv != null) {
+                        removeOneReplaceDiv(replaceDiv);
+                    }
+                }
             } else if (request.nodeType == 2) {
-                markToReplace_text(nodeMap.get(request.nodeNumber), globalReplace);
+                var textNodeParentElement = notSpoilerNode.parentElement;
+                elementToRecover = findTargetParent(notSpoilerNode);
+                if (elementToRecover === null) {
+                    if (TEXT_FORMATTING_ELEMENTS.includes(textNodeParentElement.nodeName)) {
+                        var closestNonFormattingParent = textNodeParentElement.closest(NOT_TEXT_FORMATTING_ELEMENTS_STRING);
+                        elementToRecover = closestNonFormattingParent;
+                    } else {
+                        elementToRecover = textNode.parentElement;
+                    }
+                }
+                var siblingNodes = elementToRecover.parentElement.children;
+                for (var n = 0; n < siblingNodes.length; n++) {
+                    var replaceDiv = siblingNodes[n].closest("[" + REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME + "='true']");
+                    if (replaceDiv != null) {
+                        removeOneReplaceDiv(replaceDiv);
+                    }
+                }
             }
-            createReplaceDivs(request.node);
         }
     } 
 })
