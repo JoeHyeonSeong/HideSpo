@@ -16,7 +16,7 @@ try {
             movieData = (typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
             blockPower = (typeof items.blockPower == "undefined") ? 1 : items.blockPower;
 
-            console.log(items);
+            //console.log(items);
         });
 }
 catch {
@@ -32,11 +32,11 @@ const nounUrl = chrome.runtime.getURL('datas/nouns.json');
 let nouns;
 fetch(nounUrl)
     .then((response) => response.json()) //assuming file contains json
-    .then((json) => nouns = json);
+    .then((json) =>{ nouns = new Set(json.data);});
 
 chrome.tabs.onUpdated.addListener(
     function (tabId, changeInfo, tab) {
-        console.log('update');
+        //console.log('update');
         let url;
         chrome.tabs.executeScript(tabId.tabId,
             { code: "document.domain" },
@@ -49,9 +49,9 @@ chrome.tabs.onUpdated.addListener(
 
 chrome.tabs.onActivated.addListener(
     function (tabId, changeInfo, tab) {
-        console.log('activate');
+        //console.log('activate');
         let url;
-        console.log(tabId);
+        //console.log(tabId);
         chrome.tabs.executeScript(tabId.tabId,
             { code: "document.domain" },
             function (results) {
@@ -63,25 +63,25 @@ chrome.tabs.onActivated.addListener(
 );
 
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
-    console.log('sender');
-    console.log(sender);
+    //console.log('sender');
+    //console.log(sender);
     if (request.message === "whiteListAdd") {
-        console.log("add");
-        console.log(request.url);
+        //console.log("add");
+        //console.log(request.url);
         let url = request.url;
         addWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
     }
     else if (request.message === "whiteListDelete") {
-        console.log("delete");
+        //console.log("delete");
         let url = request.url;
         deleteWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
     }
     else if (request.message === "whiteListCheck") {
-        console.log('check');
+        //console.log('check');
         let url = request.url;
         sendWhiteList_popup(url);
     } else if (request.message === "whiteListCheck_content") {
@@ -121,7 +121,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 function trimRole(newData){
     let movie=newData[newData.length-1];
     let actors=[];
-    console.log(movie);
+    //console.log(movie);
     for(let a of movie.actor.slice(0,actorNum)){
         actors.push(a);
     }
@@ -137,7 +137,7 @@ function trimRole(newData){
         if(combine!="")
             actors.push(combine.trim());
     }
-    console.log(actors);
+    //console.log(actors);
     movie.actor=actors;
     return newData;
 }
@@ -174,7 +174,7 @@ function updateContentScript() {
     });
     chrome.tabs.query({ active: true }, function (tabs) {
         var currTab = tabs[0];
-        console.log(tabs);
+        //console.log(tabs);
         if (currTab) { // Sanity check
             chrome.tabs.sendMessage(currTab.id,
                 {
@@ -187,7 +187,7 @@ function updateContentScript() {
 }
 
 function iconCheck(url) {
-    console.log('urlChange!');
+    //console.log('urlChange!');
     let onWhiteList = isOnWhiteList(url);
     if (onWhiteList)
         chrome.browserAction.setIcon({ path: "images/icon16.png" });
@@ -274,7 +274,7 @@ function properNounLabel(word) {
 }
 
 async function nlpCheck(words) {
-    console.log(words);
+    //console.log(words);
     const max_len = 41;
     var indexArr = new Array(max_len).fill(0);
     var isSpoiler=false;
@@ -296,7 +296,7 @@ async function nlpCheck(words) {
         const prediction = res.predict(example);
         //console.log(prediction);//prediction�� Tensor info
         const tensorData = prediction.dataSync();
-        console.log(tensorData[1]);
+        //console.log(tensorData[1]);
         if (tensorData[1] > 0.5) {
             isSpoiler=true;
         } else {
@@ -309,7 +309,7 @@ async function nlpCheck(words) {
 }
 
 function wordExist(word) {
-    console.log(word);
-    console.log(wordindex[word]);
-    return nouns.data.find(element=>word==element) != undefined;
+    //console.log(word);
+    //console.log(wordindex[word]);
+    return nouns.has(word);
 }

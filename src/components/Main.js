@@ -200,7 +200,7 @@ class Main extends Component {
         this.setState({
             movieDatas: newDatas
         });
-        console.log(newDatas);
+        //console.log(newDatas);
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
@@ -212,8 +212,8 @@ class Main extends Component {
     deleteMovie = (value) => {
         const { movieDatas } = this.state;
         let newDatas = movieDatas.filter(info => info.title !== value.title);
-        console.log(value.title);
-        console.log(newDatas);
+        //console.log(value.title);
+        //console.log(newDatas);
         this.setState({
             movieDatas: newDatas
         });
