@@ -50,7 +50,7 @@ class MovieDialog extends Component {
                                         <img width='80' src={row.poster}></img>
                                         </TableCell>
                                     <TableCell align="right" >
-                                        <p class={classes.text}>{row.title}</p>
+                                        <p class={classes.text}>{(row.title.length<14)? row.title:row.title.substring(0,14)+"..."}</p>
                                         <p>{row.prodYear}</p>
                                         </TableCell>
                                     <TableCell align="right">
@@ -79,8 +79,7 @@ class MovieDialog extends Component {
     }
 
     searchMovie = async () => {
-        let basicUrl = "http://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp?"
-            + "collection=kmdb_new2&ServiceKey=M9RA61A20074QJD5W74X&use=극장용&sort=prodYear,1&detail=Y&listCount=500&title=";
+        let basicUrl = "http://158.247.209.101:5000/search?title=";
         let response = await fetch(basicUrl + this.props.title)
         this.setState({
             movieData: [],

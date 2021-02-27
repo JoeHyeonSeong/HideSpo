@@ -1,7 +1,7 @@
 {
   "name": "스포노노",
-  "version": "1.0",
-  "description": "영화 스포일러를 가려줍니다",
+  "version": "0.0.0.1",
+  "description": "AI를 통해 웹상의 영화 스포일러를 판단해 차단하는 프로그램입니다.",
   "manifest_version": 2,
   "browser_action": {
     "default_popup": "index.html",
@@ -11,7 +11,7 @@
     }
   },
   "background": {
-    "scripts":["tf.min.js","background.js"]
+    "scripts":["background.js"]
   },
   "content_scripts": [
     {

@@ -1,21 +1,21 @@
 
-    REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME = "data-replacer-element-marker"
+REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME = "data-replacer-element-marker"
 
-    REPLACE_NEEDED_ATTRIBUTE_NAME = "data-replace-needed"
+REPLACE_NEEDED_ATTRIBUTE_NAME = "data-replace-needed"
 
-    ATTRIBUTE_FOR_SPONONO = "attribute-for-sponono"
-    ORIGINAL_STYLE_ATTRIBUTE_NAME = "data-original-style"
-    ORIGINAL_WIDTH_ATTRIBUTE_NAME = "data-original-width"
-    ORIGINAL_HEIGHT_ATTRIBUTE_NAME = "data-original-height"
-    REPLACE_TEXT_ATTRIBUTE_NAME = "data-replace-text"
-    TEXT_FORMATTING_ELEMENTS = ["B", "EM", "I", "SMALL", "STRONG", "SUB", "SUP", "INS", "DEL", "MARK"]
-    NOT_TEXT_FORMATTING_ELEMENTS_STRING = ":not(b):not(em):not(i):not(small):not(strong):not(sub):not(sup):not(ins):not(del):not(mark)"
-    NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP = /[^ㄱ-ㅎ가-힣a-z0-9]/
-    ONLY_NUMBER = /[0-9]/
-    NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP = "[^ㄱ-ㅎ가-힣a-z0-9]?"
-    NUMBER_OR_LETTER_OUTSIDE_REG_EXP = /[ㄱ-ㅎ가-힣a-z0-9]/
+ATTRIBUTE_FOR_SPONONO = "attribute-for-sponono"
+ORIGINAL_STYLE_ATTRIBUTE_NAME = "data-original-style"
+ORIGINAL_WIDTH_ATTRIBUTE_NAME = "data-original-width"
+ORIGINAL_HEIGHT_ATTRIBUTE_NAME = "data-original-height"
+REPLACE_TEXT_ATTRIBUTE_NAME = "data-replace-text"
+TEXT_FORMATTING_ELEMENTS = ["B", "EM", "I", "SMALL", "STRONG", "SUB", "SUP", "INS", "DEL", "MARK"]
+NOT_TEXT_FORMATTING_ELEMENTS_STRING = ":not(b):not(em):not(i):not(small):not(strong):not(sub):not(sup):not(ins):not(del):not(mark)"
+NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP = /[^ㄱ-ㅎ가-힣a-z0-9]/
+ONLY_NUMBER = /[0-9]/
+NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP = "[^ㄱ-ㅎ가-힣a-z0-9]?"
+NUMBER_OR_LETTER_OUTSIDE_REG_EXP = /[ㄱ-ㅎ가-힣a-z0-9]/
 
-    skipElementsFromRenderReplaceDivBecauseItHasBeenRestored = []
+skipElementsFromRenderReplaceDivBecauseItHasBeenRestored = []
 
 TABLE_TEXT = "<table data-replacer-element-marker='true'" +
     "class='blockingAreaForSponono'" +
@@ -52,17 +52,16 @@ TABLE_TEXT = "<table data-replacer-element-marker='true'" +
     "</tr>" +
     "</table>";
 
-var textCache = [];
-var spoilerStringCache = [];
 var movieData;
 var level = -1;
 var movieDataLength = -1;
 var whiteListChecker;
-var globalReplace = {};
 var nodeMap = new Map();
 var nodeCount = 0;
 var blockColor = '#1d9a89';
-var observerAttached = true;
+let attachObserver=false;
+var opened=new Set();
+
 isNullOrEmpty = function (value) {
     return value === null ||
         value === undefined ||
@@ -74,205 +73,85 @@ String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
 }
 
-shouldReplaceText = function (node,text,nodeType) {
-    var res = {};
-    var titleSpoiler = null;
-    var actorSpoiler = null;
-    var directorSpoiler = null;
-    var temp = null;
-    var textIndex = null;
-    var actor = null;
-    var director = null;
-    res.shouldReplace = false;
-    var trimmedText = text.replace('↵', "").trim();
-    if (trimmedText.length > 0) {
+shouldReplaceText = function (node) {
+    var titleSpoiler = false;
+    var actorSpoiler = false;
+    var directorSpoiler = false;
+    var text = node.data;
+    var isSpoiler = false;
+    if (text.indexOf("http") == 0)
+        return false;
+    text = text.replaceAll('↵', "").trim();
+    if (text.length == 0)
+        return false;
 
-        if (textCache.indexOf(trimmedText) == -1) {
-            var normalizeLowerText;
-            var beforeSplitNormalizeLowerText;
-            //normalizeLowerText = text.normalizeString().toLowerCase(); extends 추가했는데 인식 불가
-            beforeSplitNormalizeLowerText = trimmedText.toLowerCase();
-
-            var splitByNewLine = beforeSplitNormalizeLowerText.split("\n");
-            for (var w = 0; w < splitByNewLine.length; w++) {
-
-                normalizeLowerText = splitByNewLine[w];
-                //there is no letter or number in the text
-                if (isNullOrEmpty(normalizeLowerText.match(NUMBER_OR_LETTER_OUTSIDE_REG_EXP))) {
-                    temp = null;
-                }
-                for (var i = 0; i < movieData.length; i++) {
-                    actor = movieData[i].actor.concat(movieData[i].director);
-                    for (var j = 0; j < actor.length; j++) {
-                        var spoilerString = "";
-                        spoilerString = actor[j].replaceAll(ONLY_NUMBER, "").trim();
-                        var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
-                        if (normalizedLowerSpoilerString == "")
-                            continue;
-                        if (normalizedLowerSpoilerString.split(" ").length === 1) {
-                            if (
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                                (normalizedLowerSpoilerString === normalizeLowerText)) {
-                                actorSpoiler = spoilerString;
-                                trimmedText = trimmedText.replace(spoilerString, "<배우>");
-                            }
-                        } else {
-
-                            var splitByBlank = normalizedLowerSpoilerString.split(" ");
-                            for (var k = 0; k < splitByBlank.length; k++) {
-                                if (splitByBlank[k].length == 1) {
-                                    continue;
-                                }
-                                var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                if (compareText.includes(compareSpoilerString)) {
-                                    actorSpoiler = spoilerString;
-                                    trimmedText = trimmedText.replace(actorSpoiler, "<배우>");
-                                }
-                            }
-                        }
-                    }
-                    var director = movieData[i].director;
-                    for (var j = 0; j < director.length; j++) {
-                        var spoilerString = "";
-                        spoilerString = director[j].replaceAll(ONLY_NUMBER, "").trim();
-                        var normalizedLowerSpoilerString = spoilerString.toLowerCase();;
-                        if (normalizedLowerSpoilerString == "")
-                            continue;
-                        if (normalizedLowerSpoilerString.split(" ").length === 1) {
-
-                            if (
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                                (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                                (normalizedLowerSpoilerString === normalizeLowerText)) {
-                                directorSpoiler = spoilerString;
-                                trimmedText = trimmedText.replace(directorSpoiler, "<감독>");
-                            }
-                        } else {
-
-                            var splitByBlank = normalizedLowerSpoilerString.split(" ");
-                            for (var k = 0; k < splitByBlank.length; k++) {
-                                if (splitByBlank[k].length == 1) {
-                                    continue;
-                                }
-                                var compareSpoilerString = splitByBlank[k].replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                                if (compareText.includes(compareSpoilerString)) {
-                                    directorSpoiler = spoilerString;
-                                    trimmedText = trimmedText.replace(directorSpoiler, "<감독>");
-                                }
-                            }
-                        }
-                    }
-                }
-                for (var i = 0; i < movieData.length; i++) {
-                    var spoilerString = ""
-                    spoilerString = movieData[i].title.trim();
-                    //var normalizedLowerSpoilerString = core.markAndReplace.normalizedSpoilerStringList[i];
-                    var normalizedLowerSpoilerString = spoilerString;
-                    if (normalizedLowerSpoilerString.split(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP).length === 1) {
-                    
-                        if (
-                            (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                            (new RegExp("^" + normalizedLowerSpoilerString + NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP).test(normalizeLowerText)) ||
-                            (new RegExp(NON_NUMBER_AND_NON_LETTER_INSIDE_REG_EXP + normalizedLowerSpoilerString + "$").test(normalizeLowerText)) ||
-                            (normalizedLowerSpoilerString === normalizeLowerText)) {
-                            titleSpoiler = spoilerString;
-                            trimmedText = trimmedText.replace(titleSpoiler, "<타이틀>");
-                        }
-                    } else {
-                        var compareSpoilerString = normalizedLowerSpoilerString.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                        var compareText = normalizeLowerText.replaceAll(NON_NUMBER_AND_NON_LETTER_OUTSIDE_REG_EXP, "");
-                        if (compareText.includes(compareSpoilerString)) {
-                            titleSpoiler = spoilerString;
-                            trimmedText = trimmedText.replace(titleSpoiler, "<타이틀>");
-                        }
-                    }
-                }
-                switch (level) {
-                    case 3:
-                        if (actorSpoiler != null)
-                            temp = actorSpoiler;
-                        if (directorSpoiler != null)
-                            temp = actorSpoiler;
-                    case 2:
-                        if (titleSpoiler != null)
-                            temp = titleSpoiler;
-                        break;
-                    case 1:
-                        //의미 구분 영역
-
-                        if (directorSpoiler != null || actorSpoiler != null || titleSpoiler != null) {
-                            if (nodeType == 1) {
-                                nodeMap.set(nodeCount, node);
-                            }
-                            else if (nodeType == 2) {
-                                nodeMap.set(nodeCount, node);
-                            }
-                            //console.log(nodeCount + "send" + trimmedText);
-                            //console.log(nodeMap.get(nodeCount));
-                            chrome.runtime.sendMessage({
-                                message: 'nlpCheck',
-                                data: trimmedText,
-                                nodeNumber: nodeCount,
-                                nodeType: nodeType
-                            });
-                            nodeCount++;
-                        }
-                    
-                    default:
-                        break;
-                }            
-                textCache.push(trimmedText);
-                spoilerStringCache.push(temp);
-            }            
+    text = text.replaceAll("\n", " ");
+    //there is no letter or number in the text
+    for (let movie of movieData) {
+        //title
+        if (text.indexOf(movie.title) != -1)
+            titleSpoiler = true;
+        text = text.replaceAll(movie.title, "타이틀")
+        //actor
+        for (let actor of movie.actor) {
+            if (text.indexOf(actor) != -1)
+                actorSpoiler = true;
+            text = text.replaceAll(actor, "배우")
         }
-        textIndex = textCache.indexOf(trimmedText);
-        //console.log(textCache);
-        //set the spoilerstring what will appear on the replaced div
-        res.alternateText = spoilerStringCache[textIndex];
-        //if spoilerstring has been found, do the replace at the caller
-        res.shouldReplace = res.alternateText != null;
+        for (let director of movie.director) {
+            if (text.indexOf(director) != -1)
+                directorSpoiler = true;
+            text = text.replaceAll(director, "감독")
+        }
     }
-    return res;
+    switch (level) {
+        case 1:
+            if (actorSpoiler || titleSpoiler || directorSpoiler) {
+                if (text == "타이틀" || text == "감독" || text == "배우")
+                    break;
+                nodeMap.set(nodeCount, node);
+                //console.log(text)
+                chrome.runtime.sendMessage({
+                    message: 'nlpCheck',
+                    data: text,
+                    nodeNum:nodeCount
+                });
+                nodeCount++;
+                break;
+            }
+        case 2:
+            if (titleSpoiler)
+                isSpoiler = true;
+            break;
+
+        case 3:
+            if (actorSpoiler || directorSpoiler||titleSpoiler)
+                isSpoiler = true;
+        default:
+            break;
+
+    }
+    return isSpoiler;
 }
 
 markToReplace_childNodes = function (node) {
     //NOTE: when loading, the first time the node is null when we call this from browser.tabs.onUpdated.addListener
-    if (!node) {
+    if (!node||opened.has(node.textContent)) {
         return;
     }
     if (replaceDivIsEnabled(node, node.nodeName)) {
-
-        var cn = node.childNodes;
-        var n = cn.length;
-        var child;
-        for (var i = 0; i < n; i++) {
-            child = cn[i];
+        for (let child of node.childNodes) {
 
             //NOTE: sometimes the nodename is lowercase
             if (child === undefined)
                 continue;
             var toLowerchildNodeName = child.nodeName.toLowerCase();
-
-            /*if (toLowerchildNodeName === "img") {
-                core.markAndReplace.removeImagesIfNecessary(child);
-            }
-            if (toLowerchildNodeName === "video") {
-                core.markAndReplace.removeVideosIfNecessary(child);
-            }*/
-
             //a sometimes contains inner elements, so we have to start with A replacement
-            if (toLowerchildNodeName === "a") {
-                checkToReplace_a(child);
-            } else if (toLowerchildNodeName === "#text") {
-                checkToReplace_text(child);
-            }/* else if (toLowerchildNodeName === "img") {
-            core.markAndReplace.markToReplace_image(child);
-        }*/ else {
+            if (toLowerchildNodeName === "#text") {
+                var replace = shouldReplaceText(child);
+                if (replace)
+                    markToReplace_text(child);
+            } else {
                 //check if already marked
                 if (child.getAttribute && child.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
                     return;
@@ -288,7 +167,7 @@ markToReplace_childNodes = function (node) {
 
 replaceDivIsEnabled = function (node, nodeName) {
 
-    if ((nodeName == "#text") && (node.data.replace('↵', "").trim().length == 0)) {
+    if ((nodeName == "#text") && (node.data.replaceAll('↵', "").trim().length == 0)) {
         return false;
     }
 
@@ -321,7 +200,7 @@ replaceDivIsEnabled = function (node, nodeName) {
     }
 }
 
-markElementForReplaceDivAndHide= function(elementToReplace, displayString) {
+markElementForReplaceDivAndHide = function (elementToReplace) {
 
     if (elementToReplace.hasAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
         return;
@@ -330,11 +209,12 @@ markElementForReplaceDivAndHide= function(elementToReplace, displayString) {
     var elementToReplaceWidth = getElementToReplaceWidth(elementToReplace);
     var elementToReplaceHeight = getElementToReplaceHeight(elementToReplace);
     elementToReplace.setAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME, "true");
-    elementToReplace.setAttribute(REPLACE_TEXT_ATTRIBUTE_NAME, "'" + displayString + "' 포함되어있습니다");
+    elementToReplace.setAttribute(REPLACE_TEXT_ATTRIBUTE_NAME, "스포일러일 가능성이 있습니다.");
     elementToReplace.setAttribute(ORIGINAL_STYLE_ATTRIBUTE_NAME, originalStyle);
     elementToReplace.setAttribute(ORIGINAL_WIDTH_ATTRIBUTE_NAME, elementToReplaceWidth);
     elementToReplace.setAttribute(ORIGINAL_HEIGHT_ATTRIBUTE_NAME, elementToReplaceHeight);
     elementToReplace.setAttribute(ATTRIBUTE_FOR_SPONONO, true);
+    //elementToReplace.style.filter="blur(4px)";
     recursiveSetSponono(elementToReplace);
     elementToReplace.style.display = "none";
 }
@@ -350,91 +230,48 @@ recursiveSetSponono = function (node) {
     }
 }
 
-checkToReplace_a = function (a) {
-    var replace;
-    if (a.innerText) {
-        replace = shouldReplaceText(a,a.innerText,1);
-    }
-    //if  a.innerText failed to match               
-    if (a.href && (!replace || replace && !replace.shouldReplace)) {
-        replace = shouldReplaceText(a,a.href);
-    }
+markToReplace_a = function (a) {
 
-    if (replace && replace.shouldReplace) {
-        markToReplace_a(a, replace);
+    //if the link is in paragraph
+    var aOrParent = a;
+    if (a.parentElement.nodeName.toLowerCase() == "p") {
+        aOrParent = a.parentElement;
     }
-}
+    var elementToReplace = aOrParent;
+    elementToReplace = findTargetParent(a);
+    if (elementToReplace === null)
+        elementToReplace = aOrParent;
+    if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
 
-markToReplace_a = function (a, replace) {
-    
-        //if the link is in paragraph
-        var aOrParent = a;
-        if (a.parentElement.nodeName.toLowerCase() == "p") {
-            aOrParent = a.parentElement;
-        }
-        var elementToReplace = aOrParent;
-        elementToReplace = findTargetParent(a);
-        if (elementToReplace === null)
-            elementToReplace = aOrParent;
-        if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
-           
-            var curUrl = window.location.hostname;
-            //elementToReplace.innerText = "키워드 '" + replace.alternateText + "' 포함되어있습니다";
-            //elementToReplace.style.color = "white";
-            //elementToReplace.setAttribute('needWhite', 'yes');
-            //elementToReplace.style.backgroundColor = "#1d9a89";
-            
-            elementToReplace.querySelectorAll("img").forEach(function (el) {
+        elementToReplace.querySelectorAll("img").forEach(function (el) {
+            el.setAttribute("style", "display: none;");
+        });
+        if (elementToReplace.parentElement.querySelectorAll("img").length == 1) {
+            elementToReplace.parentElement.querySelectorAll("img").forEach(function (el) {
                 el.setAttribute("style", "display: none;");
             });
-            if (elementToReplace.parentElement.querySelectorAll("img").length == 1) {
-                elementToReplace.parentElement.querySelectorAll("img").forEach(function (el) {
-                    el.setAttribute("style", "display: none;");
-                });
-            }            
-            markElementForReplaceDivAndHide(elementToReplace, replace.alternateText);
         }
-}
-
-checkToReplace_text = function (textNode) {
-
-    var replace = shouldReplaceText(textNode,textNode.data,2);
-
-    if (replace && replace.shouldReplace) {
-        markToReplace_text(textNode,replace);
+        markElementForReplaceDivAndHide(elementToReplace);
     }
 }
 
-markToReplace_text = function (textNode, replace) {
+markToReplace_text = function (textNode) {
 
     var elementToReplace;
     var textNodeParentElement = textNode.parentElement;
-        //if the parent is a formatter, we will find the first nonformatter parent, that should be replaced
-        elementToReplace = findTargetParent(textNode);
-        if (elementToReplace === null) {
-            if (TEXT_FORMATTING_ELEMENTS.includes(textNodeParentElement.nodeName)) {
-                var closestNonFormattingParent = textNodeParentElement.closest(NOT_TEXT_FORMATTING_ELEMENTS_STRING);
-                elementToReplace = closestNonFormattingParent;
-            } else {
-                elementToReplace = textNode.parentElement;
-            }
+    //if the parent is a formatter, we will find the first nonformatter parent, that should be replaced
+    elementToReplace = findTargetParent(textNode);
+    if (elementToReplace === null) {
+        if (TEXT_FORMATTING_ELEMENTS.includes(textNodeParentElement.nodeName)) {
+            var closestNonFormattingParent = textNodeParentElement.closest(NOT_TEXT_FORMATTING_ELEMENTS_STRING);
+            elementToReplace = closestNonFormattingParent;
+        } else {
+            elementToReplace = textNode.parentElement;
         }
-        if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) { 
-            //elementToReplace.style.color = blockColor;
-            /*elementToReplace.style.backgroundColor = blockColor;
-
-            elementToReplace.childNodes.forEach(function (el) {
-
-                el.innerHTML = replace.alternateText;
-            });*/
-
-            /*var curUrl = window.location.hostname;
-            var c = elementToReplace.children;
-            for (var i = 0; i < c.length; i++) {
-                c[i].style.color = "white";
-            }*/
-            markElementForReplaceDivAndHide(elementToReplace, replace.alternateText);
-        }            
+    }
+    if (!elementToReplace.getAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME)) {
+        markElementForReplaceDivAndHide(elementToReplace);
+    }
 }
 
 findTargetParent = function (curNode) {
@@ -460,18 +297,18 @@ findTargetParent = function (curNode) {
 
 find_children = function (parentNode) {
     if (parentNode.children.length != 0) {
-        var youtubeC = parentNode.children;
-        for (var i = 0; i < youtubeC.length; i++) {
-            if (youtubeC[i].getAttribute("needWhite") != "yes") {
-                youtubeC[i].style.color = blockColor;
+        var children = parentNode.children;
+        for (var i = 0; i < children.length; i++) {
+            if (children[i].getAttribute("needWhite") != "yes") {
+                children[i].style.color = blockColor;
             }
-            find_children(youtubeC[i]);
+            find_children(children[i]);
         }
     }
     return;
 }
 
-getElementWithSize= function(element) {
+getElementWithSize = function (element) {
     //NOTE: The "a" html element doesn't have width and height (almost always), so we get the first child element with width and height
     var elementWithSize = element;
     if (element.nodeName === "A" && element.clientWidth < 1 && element.clientHeight < 1) {
@@ -512,7 +349,7 @@ getElementToReplaceHeight = function (element) {
 }
 
 //div 생성
-createReplaceDivs = function (node) {  
+createReplaceDivs = function (node) {
 
     document.body.querySelectorAll("[" + REPLACE_NEEDED_ATTRIBUTE_NAME + "='true']").forEach(function (markedDiv) {
         if (markedDiv.nextElementSibling && markedDiv.nextElementSibling.getAttribute(REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME)) {
@@ -521,12 +358,12 @@ createReplaceDivs = function (node) {
         var elementToReplaceWidth = markedDiv.getAttribute(ORIGINAL_WIDTH_ATTRIBUTE_NAME);
         var elementToReplaceHeight = markedDiv.getAttribute(ORIGINAL_HEIGHT_ATTRIBUTE_NAME);
         var replaceText = markedDiv.getAttribute(REPLACE_TEXT_ATTRIBUTE_NAME);
-        var tableText = TABLE_TEXT.replace("#elementToReplaceWidth#", elementToReplaceWidth - 5)
-            .replace("#elementToReplaceHeight#", elementToReplaceHeight)
-            .replace("#backgroundColor#", blockColor)
-            .replace("#textWidth#", elementToReplaceWidth - 30)
-            .replace("#title#", replaceText)
-            .replace("#text#", replaceText);
+        var tableText = TABLE_TEXT.replaceAll("#elementToReplaceWidth#", elementToReplaceWidth - 5)
+            .replaceAll("#elementToReplaceHeight#", elementToReplaceHeight)
+            .replaceAll("#backgroundColor#", blockColor)
+            .replaceAll("#textWidth#", elementToReplaceWidth - 30)
+            .replaceAll("#title#", replaceText)
+            .replaceAll("#text#", replaceText);
         var overlayTable = createElementFromHTML(tableText);
         overlayTable.addEventListener("mouseover", function (e) {
             e.preventDefault();
@@ -541,64 +378,66 @@ createReplaceDivs = function (node) {
             }
             return false;
         }, false);
-        
+
         markedDiv.after(overlayTable);
-    });    
+    });
 }
 createElementFromHTML = function (htmlString) {
 
     var div = document.createElement('div');
     div.innerHTML = htmlString.trim();
+    div.filter="blur(4px)";
     return div.firstChild;
 }
 
 getDomPath = function (el) {
 
-        var stack = [];
-        while (el.parentNode != null) {
+    var stack = [];
+    while (el.parentNode != null) {
 
-            var sibCount = 0;
-            var sibIndex = 0;
-            for (var i = 0; i < el.parentNode.childNodes.length; i++) {
-                var sib = el.parentNode.childNodes[i];
-                if (sib.nodeName == el.nodeName) {
-                    if (sib === el) {
-                        sibIndex = sibCount;
-                    }
-                    sibCount++;
+        var sibCount = 0;
+        var sibIndex = 0;
+        for (var i = 0; i < el.parentNode.childNodes.length; i++) {
+            var sib = el.parentNode.childNodes[i];
+            if (sib.nodeName == el.nodeName) {
+                if (sib === el) {
+                    sibIndex = sibCount;
                 }
+                sibCount++;
             }
-            if (el.hasAttribute('id') && el.id != '') {
-                stack.unshift(el.nodeName.toLowerCase() + '#' + el.id);
-            } else if (sibCount > 1) {
-                stack.unshift(el.nodeName.toLowerCase() + ':eq(' + sibIndex + ')');
-            } else {
-                stack.unshift(el.nodeName.toLowerCase());
-            }
-            el = el.parentNode;
         }
-        return stack.join(">");
+        if (el.hasAttribute('id') && el.id != '') {
+            stack.unshift(el.nodeName.toLowerCase() + '#' + el.id);
+        } else if (sibCount > 1) {
+            stack.unshift(el.nodeName.toLowerCase() + ':eq(' + sibIndex + ')');
+        } else {
+            stack.unshift(el.nodeName.toLowerCase());
+        }
+        el = el.parentNode;
     }
+    return stack.join(">");
+}
 showOriginalElement = function (e) {
 
-        var clickedElement = e.target;
-        var overlayElement = clickedElement.closest("[" + REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME + "='true']");
-        skipElementsFromRenderReplaceDivBecauseItHasBeenRestored.push(getDomPath(overlayElement.previousElementSibling));
-        removeOneReplaceDiv(overlayElement);
-        //NOTE: prevent click for the covered html element
-        e.preventDefault();
-        e.stopPropagation();
-    }
+    var clickedElement = e.target;
+    var overlayElement = clickedElement.closest("[" + REPLACER_ELEMENT_MARKER_ATTRIBUTE_NAME + "='true']");
+    skipElementsFromRenderReplaceDivBecauseItHasBeenRestored.push(getDomPath(overlayElement.previousElementSibling));
+    removeOneReplaceDiv(overlayElement);
+    //NOTE: prevent click for the covered html element
+    e.preventDefault();
+    e.stopPropagation();
+}
 
 removeOneReplaceDiv = function (overlayElement) {
 
-        var blockedHtmlElement = overlayElement.previousElementSibling;
-        overlayElement.parentNode.removeChild(overlayElement);
-        restoreBlockedElement(blockedHtmlElement);
+    var blockedHtmlElement = overlayElement.previousElementSibling;
+    overlayElement.parentNode.removeChild(overlayElement);
+    restoreBlockedElement(blockedHtmlElement);
 }
 
 restoreBlockedElement = function (blockedHtmlElement) {
-
+    opened.add(blockedHtmlElement.textContent);
+    //console.log(opened);
     var originalStyle = blockedHtmlElement.getAttribute(ORIGINAL_STYLE_ATTRIBUTE_NAME);
     blockedHtmlElement.removeAttribute(REPLACE_TEXT_ATTRIBUTE_NAME);
     blockedHtmlElement.removeAttribute(REPLACE_NEEDED_ATTRIBUTE_NAME);
@@ -625,66 +464,37 @@ restoreBlockedElement = function (blockedHtmlElement) {
 }
 
 zenofunc = function (mutation) {
-
-    textCache = [];
-    spoilerStringCache = [];
-    //markToReplace_childNodes(document.body);;
     markToReplace_childNodes(mutation);
     createReplaceDivs(mutation);
-    textCache = [];
-    spoilerStringCache = [];
 }
 
-/* 부모 속성 확인용 함수 node[0]에 한해서 ture 반환 찍힘에도 undefined 반환함
-checkParentAttributeSponono = function (node) {
-    if (node.hasAttribute(ATTRIBUTE_FOR_SPONONO)) {
-        console.log("true 반환");
-        return true;
-    }
-    else if (node.parentElement == undefined) {
-        console.log(node);
-        return false;
-    }
-    else
-        checkParentAttributeSponono(node.parentNode);
-
-}*/
 AttachBlockObserver = function () {
-        
-    if (movieData.length == 0)
+    if(attachObserver)
         return;
-    markToReplace_childNodes(document.body);
-    createReplaceDivs(document.body);
-    //console.log("1?????????????????");//왜??????????????????????????????????????????????????????????????????????????????????????????????????
-    MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+    attachObserver=true;
+    if (movieData ==undefined)
+        return;
+    zenofunc(document.body);
+    //MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
     let observer = new MutationObserver(function (mutations, observer) {
         // fired when a mutation occurs
+
         for (var i = 0; i < mutations.length; i++) {
-            if (!mutations[i].target.hasAttribute(ATTRIBUTE_FOR_SPONONO) ) {
-                
-                zenofunc(mutations[i].target);                
-            }            
+
+            if (!mutations[i].target.hasAttribute(ATTRIBUTE_FOR_SPONONO) && mutations[i].target.textContent != "") {
+                zenofunc(mutations[i].target);
+            }
         }
-    /* 부모 속성 확인용 함수 node[0]에 한해서 ture 반환 찍힘에도 undefined 반환함
-         if (!checkParentAttributeSponono(mutations[i].target)) {
-
-            console.log(mutations[i]);
-            zenofunc(mutations[i].target);
-
-        }*/
-        // ...
     });
 
     // define what element should be observed by the observer
     // and what types of mutations trigger the callback
-    if (!observerAttached) {
-        observer.observe(document, {
-            subtree: true,
-            attributeOldValue: true,
-            //...
-        });
-        observerAttached = false;
-    }
+    observer.observe(document, {
+        subtree: true,
+        attributes: true,
+        childList:true
+        //...
+    });
 }
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -694,51 +504,49 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (movieDataLength > movieData.length || (movieData.length == 0 && movieDataLength == 1))
             window.location.reload();
         if (level != request.blockPower && level != -1) {
-            
+
             window.location.reload();
         }
         level = request.blockPower;
         if (request.onWhiteList == false || (request.onWhiteList == undefined && whiteListChecker == false)) {
-            
+
             if (movieDataLength < movieData.length) {
                 AttachBlockObserver();
-            }            
+            }
         }
         movieDataLength = movieData.length;
     }
 
-    if(request.message==="whiteList"){
+    if (request.message === "whiteList") {
         if (request.onWhiteList && whiteListChecker == false) {
-            whiteListChecker = request.onWhiteList;   
+            whiteListChecker = request.onWhiteList;
             window.location.reload();
-                    }
-        else if (!request.onWhiteList){
-            whiteListChercker = true;
+        }
+        else if (!request.onWhiteList) {
+            whiteListChecker = true;
             AttachBlockObserver();
         }
-        whiteListChecker = request.onWhiteList;   
+        whiteListChecker = request.onWhiteList;
     }
-    if (request.message == 'nlpReply') {
-        if (request.isSpoiler) {
-            globalReplace.alternateText = '스포일러';
-            globalReplace.shouldReplace = true;
-            nodeMap.get(request.nodeNumber);
-            if (request.nodeType == 1) {
-                markToReplace_a(nodeMap.get(request.nodeNumber), globalReplace);
-            } else if (request.nodeType == 2) {
-                markToReplace_text(nodeMap.get(request.nodeNumber), globalReplace);
-            }
-            createReplaceDivs(request.node);
+    if (request.message == 'nlpReply' && request.isSpoiler) {
+        let node = nodeMap.get(request.nodeNum);
+        if (node != undefined) {
+            let nodename = node.nodeName.toLowerCase();
+            if (nodename == "a")
+                markToReplace_a(node);
+            if (nodename == "#text")
+                markToReplace_text(node);
+            createReplaceDivs(node);
         }
-    } 
+    }
 })
 
 chrome.runtime.sendMessage({
-    message: 'getMovieData'
+    message: 'getMovieData',
+    node:document.body
 });
 
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
-
-console.log('hi2');
+//console.log("cur");

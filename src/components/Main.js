@@ -148,7 +148,7 @@ class Main extends Component {
                         elevation={3}>
                         {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
                     </Button>
-                    <Paper className={classes.wrap} elevation={3}>
+                    {/*<Paper className={classes.wrap} elevation={3}>
                         <Slider
                             value={this.state.blockPower}
                             aria-labelledby="discrete-slider"
@@ -162,7 +162,7 @@ class Main extends Component {
                         <div>
                             {this.blockPowerText[this.state.blockPower]}
                         </div>
-                    </Paper>
+                                    </Paper>*/}
                 </Paper>
             </ThemeProvider>
 
@@ -171,40 +171,41 @@ class Main extends Component {
 
     addMovie = (value) => {
         let trimData = {};
-        trimData.title = value.title;
+        trimData.title = value.title.trim();
         trimData.prodYear = value.prodYear;
         trimData.nation = value.nation;
         trimData.director = value.directors.director.map(d => d.directorNm);
         trimData.actor = [];
         trimData.poster = value.poster;
-        let actorCnt=0;
-        let roles=[];
+        let actorCnt = 0;
+        let roles = [];
         for (let s of value.staffs.staff) {
             if (s.staffRoleGroup == '출연') {
                 trimData.actor.push(s.staffNm);
-                actorCnt+=1;
-                let role=s.staffRole.split('/');
-                roles=roles.concat(role);
-                if(actorCnt>=5)
+                actorCnt += 1;
+                let role = s.staffRole.split('/');
+                for (let r of role)
+                    roles.push(r.replace("목소리", "").trim());
+                if (actorCnt >= 5)
                     break;
             }
         }
-        trimData.actor=trimData.actor.concat(roles);
+        trimData.actor = trimData.actor.concat(roles);
         for (let m of this.state.movieDatas) {
             if (trimData.title === m.title && trimData.prodYear === m.prodYear) {
                 this.handleClose();
                 return;
             }
         }
+        console.log(trimData)
         let newDatas = this.state.movieDatas.concat(trimData);
         this.setState({
             movieDatas: newDatas
         });
-        //console.log(newDatas);
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
-            add:true
+            add: true
         });
         this.handleClose();
     }
@@ -212,15 +213,13 @@ class Main extends Component {
     deleteMovie = (value) => {
         const { movieDatas } = this.state;
         let newDatas = movieDatas.filter(info => info.title !== value.title);
-        //console.log(value.title);
-        //console.log(newDatas);
         this.setState({
             movieDatas: newDatas
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
-            add:false
+            add: false
         });
     }
 

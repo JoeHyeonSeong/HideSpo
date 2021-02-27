@@ -1,10 +1,4 @@
 
-const start = async function () {
-    const model = await tf.loadLayersModel('./datas/spoilerModel/model.json');
-    return model;
-}
-
-const model = start();
 const actorNum=5;
 let whiteList = [];
 let movieData;
@@ -34,33 +28,37 @@ fetch(nounUrl)
     .then((response) => response.json()) //assuming file contains json
     .then((json) =>{ nouns = new Set(json.data);});
 
-chrome.tabs.onUpdated.addListener(
-    function (tabId, changeInfo, tab) {
-        //console.log('update');
-        let url;
-        chrome.tabs.executeScript(tabId.tabId,
-            { code: "document.domain" },
-            function (results) {
-                url = results[0];
-                iconCheck(url);
-            });
-    }
-);
-
 chrome.tabs.onActivated.addListener(
-    function (tabId, changeInfo, tab) {
-        //console.log('activate');
+    function (tabId) {
+        //console.log("activate")
         let url;
-        //console.log(tabId);
         chrome.tabs.executeScript(tabId.tabId,
             { code: "document.domain" },
             function (results) {
-                url = results[0];
-                iconCheck(url);
+                chrome.runtime.lastError;
+                try {
+                    url = results[0];
+                    iconCheck(url);
+                }
+                catch {
+                    iconCheck(undefined);
+                }
             });
+
+
     }
 
 );
+
+chrome.tabs.onUpdated.addListener(function
+    (tabId, changeInfo, tab) {
+      // read changeInfo data and do something with it (like read the url)
+      if (changeInfo.url) {
+        // do something here
+  
+      }
+    }
+  );
 
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     //console.log('sender');
@@ -69,6 +67,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         //console.log("add");
         //console.log(request.url);
         let url = request.url;
+        //console.log(url)
         addWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
@@ -101,14 +100,14 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
-        let isSpoiler=await spoilerCheck(request.data);
+        let result=await spoilerCheck(request.data);
+        //console.log(request.data)
+        //console.log(result)
         chrome.tabs.sendMessage(sender.tab.id,
             {
                 message: 'nlpReply',
-                isSpoiler: isSpoiler,
-                data: request.data,
-                nodeNumber: request.nodeNumber,
-                nodeType: request.nodeType
+                isSpoiler: result,
+                nodeNum:request.nodeNum
             });
     }else if(request.message === 'wordExist'){
         chrome.runtime.sendMessage({
@@ -122,41 +121,54 @@ function trimRole(newData){
     let movie=newData[newData.length-1];
     let actors=[];
     //console.log(movie);
-    for(let a of movie.actor.slice(0,actorNum)){
+    for (let a of movie.actor.slice(0, actorNum)) {
         actors.push(a);
     }
-    for(let a of movie.actor.slice(actorNum)){
-        let words=a.split(' ');
-        let combine="";
-        for(let w of words){
-            if(!wordExist(w)){
-                combine=combine+" "+w;
-            }
+    for (let a of movie.actor.slice(actorNum)) {
+        if (!wordExist(a) && isNaN(a)) {
+            actors.push(a);
         }
-        combine=combine.trim();
-        if(combine!="")
-            actors.push(combine.trim());
     }
     //console.log(actors);
-    movie.actor=actors;
+    movie.actor = actors;
     return newData;
 }
-function sendWhiteList_content() {
 
+function sendWhiteList_content() {
+    
     chrome.tabs.query({ active: true }, function (tabs) {
-        let url;
-        chrome.tabs.executeScript(
+        //console.log(tabs)
+        for(tab of tabs){
+            //console.log(tab);
+            let url=trimUrl(tab.url);
+            //console.log(url);
+            chrome.tabs.sendMessage(tab.id,
+                {
+                    message: 'whiteList',
+                    onWhiteList: isOnWhiteList(url)
+                });
+            iconCheck(url)
+        }
+        /*
+           chrome.tabs.executeScript(
             { code: "document.domain" },
             function (results) {
-                url = results[0];
+                chrome.runtime.lastError;
+                console.log(results)
+                if (results == undefined)
+                    return;
+                let url = results[0];
                 chrome.tabs.sendMessage(tabs[0].id,
                     {
                         message: 'whiteList',
                         onWhiteList: isOnWhiteList(url)
                     });
+                iconCheck(url)
             });
-
+            */
     });
+
+    
 }
 
 function sendWhiteList_popup(trimUrl) {
@@ -173,26 +185,31 @@ function updateContentScript() {
         blockPower: blockPower
     });
     chrome.tabs.query({ active: true }, function (tabs) {
-        var currTab = tabs[0];
-        //console.log(tabs);
-        if (currTab) { // Sanity check
-            chrome.tabs.sendMessage(currTab.id,
-                {
-                    message: 'getMovieDataReply',
-                    movieData: movieData,
-                    blockPower: blockPower
-                });
+        for(let tab of tabs){
+            //console.log(tabs);
+            if (tab) { // Sanity check
+                chrome.tabs.sendMessage(tab.id,
+                    {
+                        message: 'getMovieDataReply',
+                        movieData: movieData,
+                        blockPower: blockPower
+                    });
+            }
         }
     });
 }
 
 function iconCheck(url) {
-    //console.log('urlChange!');
-    let onWhiteList = isOnWhiteList(url);
-    if (onWhiteList)
+    if(url==undefined){
         chrome.browserAction.setIcon({ path: "images/icon16.png" });
-    else
-        chrome.browserAction.setIcon({ path: "images/icon_green16.png" });
+    }
+    else{
+        let onWhiteList = isOnWhiteList(url);
+        if (onWhiteList)
+            chrome.browserAction.setIcon({ path: "images/icon16.png" });
+        else
+            chrome.browserAction.setIcon({ path: "images/icon_green16.png" });
+    }
 }
 
 function addWhiteList(url) {
@@ -213,17 +230,21 @@ function deleteWhiteList(url) {
 function trimUrl(url) {
     let i = 0;
     let cnt = 0;
+    let second;
     for (; i < url.length; i++) {
         if (url[i] === '/') {
             cnt++;
+            if (cnt === 2)
+                second = i;
             if (cnt === 3)
-                return url.substring(0, i);
+                return url.substring(second+1, i);
         }
     }
     return url;
 }
 
 function isOnWhiteList(url) {
+    //console.log(whiteList)
     for (wh of whiteList) {
         if (wh === url) {
             return true;
@@ -233,83 +254,23 @@ function isOnWhiteList(url) {
 }
 
 async function spoilerCheck(str) {
-    let words = await preprocess(str);
-    return nlpCheck(words);
-}
+    let requestUrl = "http://158.247.209.101:5000/predict"
+    let data={contents:str}
+    let response = await fetch(requestUrl, {
+        method: 'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    })
 
-async function preprocess(str) {
-    let response = await fetch("https://open-korean-text-api.herokuapp.com/tokenize?text=" + str);
     if (response.ok) {
         let json = await response.json();
-        let words = [];
-        for (let token of json.tokens) {
-            let split = token.split(/:|\(/);
-            let blockPumsa = ['Punctuation', 'Foreign', 'Alpha', 'URL', "ScreenName", "Josa"];
-            if (!blockPumsa.includes(split[1])) {
-                let newWord = split[0];
-                if (split[1] == 'Noun')
-                    newWord = properNounLabel(split[0])
-                words.push(newWord);
-            }
-        }
-        return words;
+        return json['output'];
     }
-    return null;
-}
-
-function properNounLabel(word) {
-    for (let info of movieData) {
-        if (info.title.trim() == word)
-            return "<타이틀>";
-        for (let director of info.director){
-            if (director.trim() == word)
-                return "<감독>";
-        }
-        for (let actor of info.actor){
-            if (actor.trim() == word)
-                return "<배우>";
-        }
+    else{
+        return false;//서버 응답 없으면 다 스포 아님
     }
-    return word;
-}
-
-async function nlpCheck(words) {
-    //console.log(words);
-    const max_len = 41;
-    var indexArr = new Array(max_len).fill(0);
-    var isSpoiler=false;
-    //------------wordindex ġȯ--------------
-    for (var i in words) {
-        if (wordindex[words[i]] != undefined) {
-            indexArr[i] = wordindex[words[i]];
-        } else {
-            indexArr[i] = 1;
-        }
-    }
-    //----------model load and predict--------
-    await model.then(function (res) {
-
-        const shape = [1, max_len];
-        const example = tf.tensor(indexArr, shape);
-        //example.print();
-
-        const prediction = res.predict(example);
-        //console.log(prediction);//prediction�� Tensor info
-        const tensorData = prediction.dataSync();
-        //console.log(tensorData[1]);
-        if (tensorData[1] > 0.5) {
-            isSpoiler=true;
-        } else {
-            isSpoiler=false;
-        }
-    }, function (err) {
-        console.log('Model Loading Error!');
-    });
-    return isSpoiler;
 }
 
 function wordExist(word) {
-    //console.log(word);
-    //console.log(wordindex[word]);
     return nouns.has(word);
 }
