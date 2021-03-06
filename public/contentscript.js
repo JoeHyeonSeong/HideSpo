@@ -137,8 +137,12 @@ blurBlock = function (textNode) {
     let styleText=elementToReplace.getAttribute("style");
     if (styleText==null||styleText != blurText) {
         elementToReplace.setAttribute("style",blurText);
-        elementToReplace.addEventListener("click", (event) => { openBlurred(event, elementToReplace) }, false);
+        elementToReplace.addEventListener("click", clickEventWrapper, false);
     }
+}
+
+clickEventWrapper=function(event){
+    openBlurred(event, event.currentTarget);
 }
 
 openBlurred = function (event, node) {
@@ -146,7 +150,7 @@ openBlurred = function (event, node) {
     event.stopPropagation();
     if (confirm("스포일러일 가능성이 있습니다.\n정말 차단을 해제하시겠습니까?")) {
         node.removeAttribute("style");
-        node.removeEventListener("click", (event) => { openBlurred(event,elementToReplace) }, false);
+        node.removeEventListener("click", clickEventWrapper, false);
     }
     return false;
 }

@@ -177,20 +177,15 @@ class Main extends Component {
         trimData.director = value.directors.director.map(d => d.directorNm);
         trimData.actor = [];
         trimData.poster = value.poster;
-        let actorCnt = 0;
-        let roles = [];
         for (let s of value.staffs.staff) {
             if (s.staffRoleGroup == '출연') {
-                trimData.actor.push(s.staffNm);
-                actorCnt += 1;
                 let role = s.staffRole.split('/');
+                let roles = [];
                 for (let r of role)
                     roles.push(r.replace("목소리", "").trim());
-                if (actorCnt >= 5)
-                    break;
+                trimData.actor.push([s.staffNm, roles]);
             }
         }
-        trimData.actor = trimData.actor.concat(roles);
         for (let m of this.state.movieDatas) {
             if (trimData.title === m.title && trimData.prodYear === m.prodYear) {
                 this.handleClose();

@@ -1,5 +1,5 @@
 
-const actorNum=5;
+const actorNum=10;
 let whiteList = [];
 let movieData;
 let blockPower;
@@ -120,16 +120,21 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 function trimRole(newData){
     let movie=newData[newData.length-1];
     let actors=[];
-    //console.log(movie);
     for (let a of movie.actor.slice(0, actorNum)) {
-        actors.push(a);
-    }
-    for (let a of movie.actor.slice(actorNum)) {
-        if (!wordExist(a) && isNaN(a)) {
-            actors.push(a);
+        actors.push(a[0]);
+        let trimmed=a[0].replaceAll(" ","");
+        if(trimmed!=a[0])
+            actors.push(trimmed);
+        for (let role of a[1]) {
+            if (!wordExist(role) && isNaN(role)) {
+                actors.push(role);
+                let trimmed = role.replaceAll(" ", "");
+                if (trimmed != role)
+                    actors.push(trimmed);
+            }
         }
     }
-    //console.log(actors);
+    console.log(actors);
     movie.actor = actors;
     return newData;
 }
