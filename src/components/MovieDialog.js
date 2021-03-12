@@ -27,7 +27,9 @@ const styles = {
         color:"#FFFFFF",
         padding:0,
         backgroundColor:"#ffa703",
-        textAlign:"center"
+        textAlign:"center",
+        position:"fixed",
+        width:"100%"
     },
     cell:{
         padding:8,
@@ -40,10 +42,24 @@ const styles = {
         textAlign:"center"
     },
     table: {
-        textAlign:"center"
+        textAlign:"center",
+        marginTop:"50px"
     },
-    closeButton:{
-
+    cell1:{
+        padding:8,
+        textAlign:"right"
+    },
+    cell2:{
+        padding:8,
+        textAlign:"right",
+        width:"100%"
+    },
+    row:{
+        //width:240,
+        height:126,
+        display:"flex",
+        margin:10,
+        backgroundColor:"#0000000f",
     }
 };
 
@@ -69,7 +85,34 @@ class MovieDialog extends Component {
                         <CancelOutlined  color="secondary"></CancelOutlined>
                     </IconButton>
                 </Paper>
-                <TableContainer component={Paper} square={true}  elevation={0}>
+                <Paper className={classes.table} square={true} elevation={0}>
+                    {this.state.movieData.map((row) => (
+                        <Paper className={classes.row} key={row.name} background='white'>
+                            <div className={classes.cell1}>
+                                <img width='80' src={row.poster}></img>
+                            </div>
+                            <div className={classes.cell2}>
+                                <div>
+                                    <IconButton variant="contained" color="primary"
+                                        onClick={() => { this.props.addMovie(row) }}>
+                                        <AddCircle></AddCircle>
+                                    </IconButton>
+                                </div>
+
+                                <div className={classes.text}>
+                                    <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
+                                    <p class={classes.yearText}>{row.prodYear}</p>
+                                </div>
+                            </div>
+
+                        </Paper>
+                    ))}
+                    <div class={classes.tableText}>
+                        {this.state.searchStatusText}
+                    </div>
+                </Paper>
+                {/*
+                <TableContainer component={Paper} square={true} elevation={0}>
                     <Table aria-label="simple table">
                         <TableBody>
                             {this.state.movieData.map((row) => (
@@ -95,6 +138,7 @@ class MovieDialog extends Component {
                             <div class={classes.tableText}>
                                 {this.state.searchStatusText}
                             </div>
+                            */}
             </Dialog>
 
         );

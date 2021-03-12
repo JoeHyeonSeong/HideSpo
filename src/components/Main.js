@@ -47,7 +47,7 @@ const styles = {
         margin:10
     },
     text: {
-        wordBreak: "keep-all"
+        //textAlign:"left"
     },
     titleText:{
         fontWeight:"bold",
@@ -73,10 +73,21 @@ const styles = {
             borderRadius: 25,
         },
     },
-    cell:{
+    cell1:{
         padding:8,
+        textAlign:"right"
+    },
+    cell2:{
+        padding:8,
+        textAlign:"right",
+        width:"100%"
+    },
+    row:{
+        width:240,
         height:126,
-        backgroundColor:"#e8e8e894"
+        display:"flex",
+        margin:10,
+        backgroundColor:"#0000000f",
     }
 };
 
@@ -159,31 +170,31 @@ class Main extends Component {
                     </Paper>
 
                     <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
-                    <TableContainer className={classes.table} component={Paper} elevation={0}>
-                        <Table aria-label="simple table">
-                            <TableBody>
-                                {this.state.movieDatas.map((row) => (
-                                    <TableRow key={row.name} background='white'>
-                                        <TableCell className={classes.cell}>
-                                            <img width='80px' src={row.poster}></img>
-                                        </TableCell>
-                                        <TableCell className={classes.cell}>
-                                            <p class={classes.titleText}>{(row.title.length<14)? row.title:row.title.substring(0,14)+"..."}</p>
-                                            <p class={classes.yearText}>{row.prodYear}</p>
-                                        </TableCell>
-                                        <TableCell align="right" className={classes.cell}>
-                                            <IconButton variant="contained" color='primary' onClick={() => { this.deleteMovie(row) }}>
-                                                <Cancel></Cancel>
-                                            </IconButton>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <Paper className={classes.table} elevation={0}>
+                        {this.state.movieDatas.map((row) => (
+                            <Paper className={classes.row} key={row.name} background='white'>
+                                <div className={classes.cell1}>
+                                    <img width='80px' src={row.poster}></img>
+                                </div>
+                                <div className={classes.cell2}>
+                                    <div>
+                                        <IconButton variant="contained" color='primary' onClick={() => { this.deleteMovie(row) }}>
+                                            <Cancel></Cancel>
+                                        </IconButton>
+                                    </div>
+
+                                    <div className={classes.text}>
+                                        <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
+                                        <p class={classes.yearText}>{row.prodYear}</p>
+                                    </div>
+                                </div>
+
+                            </Paper>
+                        ))}
                         <div class={classes.tableText}>
                                 {tableText}
                             </div>
-                    </TableContainer>
+                    </Paper>
                     <Button
                         variant="contained"
                         className={classes.fullButton}
