@@ -84,10 +84,14 @@ const styles = {
     },
     row:{
         width:240,
-        height:126,
+        minHeight:126,
         display:"flex",
         margin:10,
-        backgroundColor:"#0000000f",
+        border: "solid 1px #00000026",
+        borderRadius:10
+    },
+    poster:{
+        borderRadius:10
     }
 };
 
@@ -150,7 +154,7 @@ class Main extends Component {
 
             <ThemeProvider theme={theme}>
                 <Paper className={classes.root} square={true}>
-                    <Paper className={classes.title} elevation={0} square={true}>
+                    <Paper className={classes.title} square={true}>
                         <img width='82' src="images/title.png"></img>
                         <TextField
                             onChange={this.handleChange}
@@ -174,7 +178,7 @@ class Main extends Component {
                         {this.state.movieDatas.map((row) => (
                             <Paper className={classes.row} key={row.name} background='white'>
                                 <div className={classes.cell1}>
-                                    <img width='80px' src={row.poster}></img>
+                                    <img width='80px' className={classes.poster} src={row.poster}></img>
                                 </div>
                                 <div className={classes.cell2}>
                                     <div>

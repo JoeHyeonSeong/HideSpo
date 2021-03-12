@@ -111,34 +111,6 @@ class MovieDialog extends Component {
                         {this.state.searchStatusText}
                     </div>
                 </Paper>
-                {/*
-                <TableContainer component={Paper} square={true} elevation={0}>
-                    <Table aria-label="simple table">
-                        <TableBody>
-                            {this.state.movieData.map((row) => (
-                                <TableRow key={row.name}>
-                                    <TableCell className={classes.cell}>
-                                        <img width='80' src={row.poster}></img>
-                                        </TableCell>
-                                    <TableCell className={classes.cell}>
-                                        <p class={classes.titleText}>{(row.title.length<14)? row.title:row.title.substring(0,14)+"..."}</p>
-                                        <p class={classes.yearText}>{row.prodYear}</p>
-                                        </TableCell>
-                                    <TableCell align="right" className={classes.cell}>
-                                        <IconButton variant="contained" color="primary"
-                                        onClick={() => { this.props.addMovie(row) }}>
-                                            <AddCircle></AddCircle>
-                                            </IconButton>
-                                        </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                            <div class={classes.tableText}>
-                                {this.state.searchStatusText}
-                            </div>
-                            */}
             </Dialog>
 
         );
