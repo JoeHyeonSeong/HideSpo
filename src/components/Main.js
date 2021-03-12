@@ -14,13 +14,13 @@ import Paper from '@material-ui/core/Paper';
 import Slider from '@material-ui/core/Slider';
 import { Search, Cancel } from '@material-ui/icons';
 import IconButton from '@material-ui/core/IconButton';
+import InputAdornment from '@material-ui/core/InputAdornment';
 const styles = {
     root: {
-        minWidth: 370,
-        background: '#e6e6e6',
+        background: '#FFFFFF',
         textAlign: 'center',
-        paddingBottom: 10,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minWidth:260
     },
     wrap: {
         padding: 10,
@@ -29,35 +29,66 @@ const styles = {
         textAlign: 'center'
     },
     title: {
-        background: 'linear-gradient(30deg, #1d9a89 30%, #199BB0 90%)',
+        background: '#ffa703',
         color: 'white',
-        padding: 15,
         fontSize: 16,
+        padding:5,
         fontWeight: "fontWeightMedium",
-        marginBottom: 10
     },
     table: {
-        padding: 10,
-        margin: 10,
-        background: '#FFFFFF',
-        textAlign: 'center',
-        minHeight: 390
+        minHeight: 240,
+        display:"table"
     },
     fullButton: {
-        minWidth: 350,
-        textAlign: 'center',
-        background: 'white'
+        //background: '#ffa703',
+        color:'white',
+        borderRadius:25,
+        fontWeight:1000,
+        margin:10
     },
     text: {
         wordBreak: "keep-all"
+    },
+    titleText:{
+        fontWeight:"bold",
+        wordBreak: "keep-all"
+    },
+    yearText:{
+        fontSize:"smaller"
+    },
+    tableText:{
+        display:"table-cell",
+        verticalAlign:"middle",
+        color:"#0000006b"
+    },
+    search: {
+        color: '#FFFFFF',
+        borderRadius: 25,
+        backgroundColor: '#ffffff47',
+        '& .MuiInputBase-root': {
+            color: 'white',
+            fontWeight: 1000
+        },
+        [`& fieldset`]: {
+            borderRadius: 25,
+        },
+    },
+    cell:{
+        padding:8,
+        height:126,
+        backgroundColor:"#e8e8e894"
     }
 };
 
 const theme = createMuiTheme({
     palette: {
         primary: {
-            main: '#1d9a89',
+            main: '#ffa703',
+
         },
+        secondary: {
+            main: '#FFFFFF'
+        }
     },
 });
 
@@ -103,49 +134,62 @@ class Main extends Component {
 
     render() {
         const { classes } = this.props;
+        let tableText=(this.state.movieDatas.length>0)? "":"추가된 영화 없음";
         return (
 
             <ThemeProvider theme={theme}>
                 <Paper className={classes.root} square={true}>
-                    <Paper className={classes.title} square={true} elevation={3}>
-                        스포노노
-                </Paper>
-
-                    <Paper className={classes.table} elevation={3}>
-                        <TextField id="standard-basic" onChange={this.handleChange} onKeyPress={this.handlePress} label="영화제목" />
-                        <Button variant="contained" color='primary' onClick={this.handleClickOpen}>
-                            <Search></Search>
-                        </Button>
-                        <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
-                        <TableContainer>
-                            <Table aria-label="simple table">
-                                <TableBody>
-                                    {this.state.movieDatas.map((row) => (
-                                        <TableRow key={row.name}>
-                                            <TableCell align="right">
-                                                <img width='80' src={row.poster}></img>
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <p class={classes.text}>{row.title}</p>
-                                                <p>{row.prodYear}</p>
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <IconButton variant="contained" color='primary' onClick={() => { this.deleteMovie(row) }}>
-                                                    <Cancel></Cancel>
-                                                </IconButton>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                    <Paper className={classes.title} elevation={0} square={true}>
+                        <img width='82' src="images/title.png"></img>
+                        <TextField
+                            onChange={this.handleChange}
+                            onKeyPress={this.handlePress}
+                            placeholder="영화제목"
+                            className={classes.search}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="end">
+                                        <Search color="secondary"></Search>
+                                    </InputAdornment>
+                                ),
+                                disableUnderline: true
+                            }
+                            }
+                        />
                     </Paper>
+
+                    <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
+                    <TableContainer className={classes.table} component={Paper} elevation={0}>
+                        <Table aria-label="simple table">
+                            <TableBody>
+                                {this.state.movieDatas.map((row) => (
+                                    <TableRow key={row.name} background='white'>
+                                        <TableCell className={classes.cell}>
+                                            <img width='80px' src={row.poster}></img>
+                                        </TableCell>
+                                        <TableCell className={classes.cell}>
+                                            <p class={classes.titleText}>{(row.title.length<14)? row.title:row.title.substring(0,14)+"..."}</p>
+                                            <p class={classes.yearText}>{row.prodYear}</p>
+                                        </TableCell>
+                                        <TableCell align="right" className={classes.cell}>
+                                            <IconButton variant="contained" color='primary' onClick={() => { this.deleteMovie(row) }}>
+                                                <Cancel></Cancel>
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        <div class={classes.tableText}>
+                                {tableText}
+                            </div>
+                    </TableContainer>
                     <Button
                         variant="contained"
                         className={classes.fullButton}
+                        color="primary"
                         onClick={this.toggleWhiteList}
-                        color='white'
-                        elevation={3}>
+                        >
                         {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
                     </Button>
                     {/*<Paper className={classes.wrap} elevation={3}>

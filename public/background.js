@@ -3,6 +3,9 @@ const actorNum=10;
 let whiteList = [];
 let movieData;
 let blockPower;
+let serverUrl="http://158.247.209.101:5000";
+let nlpCheckMap=new Map();
+
 try {
     chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower'],
         items => {
@@ -49,6 +52,15 @@ chrome.tabs.onActivated.addListener(
     }
 
 );
+clickHandler = function(e) {
+    console.log(e);
+}
+
+chrome.contextMenus.create({
+    "title":"스포일러 신고",
+    "contexts":["page", "selection", "image", "link"],
+    "onclick" : clickHandler
+})
 
 chrome.tabs.onUpdated.addListener(function
     (tabId, changeInfo, tab) {
@@ -100,43 +112,58 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
-        let result=await spoilerCheck(request.data);
+        let result;
+        if (nlpCheckMap.has(request.data))
+            result = nlpCheckMap.get(request.data);
+        else{
+            result = await spoilerCheck(request.data);
+            nlpCheckMap.set(request.data, result);
+        }
         //console.log(request.data)
         //console.log(result)
+        console.log(result);
         chrome.tabs.sendMessage(sender.tab.id,
             {
                 message: 'nlpReply',
                 isSpoiler: result,
-                nodeNum:request.nodeNum
+                nodeNum:request.nodeNum,
+                data:request.data
             });
     }else if(request.message === 'wordExist'){
         chrome.runtime.sendMessage({
             message: 'wordExistReply',
             exist: wordExist(word),
         });
+    }else if(request.message==="report"){
+        await report(request.data,request.isSpoiler);
     }
 });
 
-function trimRole(newData){
-    let movie=newData[newData.length-1];
-    let actors=[];
+function trimRole(newData) {
+    let movie = newData[newData.length - 1];
+    let actors = [];
     for (let a of movie.actor.slice(0, actorNum)) {
-        actors.push(a[0]);
-        let trimmed=a[0].replaceAll(" ","");
-        if(trimmed!=a[0])
-            actors.push(trimmed);
+        insertActor(actors, a[0]);
         for (let role of a[1]) {
             if (!wordExist(role) && isNaN(role)) {
-                actors.push(role);
-                let trimmed = role.replaceAll(" ", "");
-                if (trimmed != role)
-                    actors.push(trimmed);
+                insertActor(actors, role);
+                let splitted = role.split(" ");
+                if (splitted.length > 1&&!wordExist(role) && isNaN(role))
+                    actors.push(splitted[0]);
             }
         }
     }
+    actors.sort((a, b) => { return b.length - a.length });
     console.log(actors);
     movie.actor = actors;
     return newData;
+}
+
+function insertActor(list, actor) {
+    list.push(actor);
+    let trimmed = actor.replaceAll(" ", "");
+    if (trimmed != actor)
+        list.push(trimmed);
 }
 
 function sendWhiteList_content() {
@@ -259,7 +286,7 @@ function isOnWhiteList(url) {
 }
 
 async function spoilerCheck(str) {
-    let requestUrl = "http://158.247.209.101:5000/predict"
+    let requestUrl = serverUrl+"/predict"
     let data={contents:str}
     let response = await fetch(requestUrl, {
         method: 'POST',
@@ -274,6 +301,17 @@ async function spoilerCheck(str) {
     else{
         return false;//서버 응답 없으면 다 스포 아님
     }
+}
+
+async function report(str, isSpoiler) {
+
+    let requestUrl = serverUrl + "/report";
+    let data = { text: str, isSpoiler: isSpoiler }
+    await fetch(requestUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
 }
 
 function wordExist(word) {

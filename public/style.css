@@ -1,0 +1,11 @@
+:root{
+    --primary:#21bb6f;
+}
+.swal-button {
+  background-color: var(--primary) !important;
+}
+
+.swal-text{
+    word-break:keep-all !important;
+    text-align: center !important;
+}

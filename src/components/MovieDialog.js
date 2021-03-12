@@ -10,12 +10,40 @@ import { withStyles } from '@material-ui/core/styles';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Dialog from '@material-ui/core/Dialog';
 import IconButton from '@material-ui/core/IconButton';
-import {Close,AddCircle} from '@material-ui/icons';
+import {Close,AddCircle, CancelOutlined} from '@material-ui/icons';
 
 const styles = {
     text:{
-        wordBreak:"keep-all",
-        textAlign:'center'
+        wordBreak:"keep-all"
+    },
+    yearText:{
+        fontSize:"smaller"
+    },
+    titleText:{
+        fontWeight:"bold",
+        wordBreak: "keep-all"
+    },
+    title:{
+        color:"#FFFFFF",
+        padding:0,
+        backgroundColor:"#ffa703",
+        textAlign:"center"
+    },
+    cell:{
+        padding:8,
+        height:126,
+        backgroundColor:"#e8e8e894"
+    },
+    tableText:{
+        verticalAlign:"middle",
+        color:"#0000006b",
+        textAlign:"center"
+    },
+    table: {
+        textAlign:"center"
+    },
+    closeButton:{
+
     }
 };
 
@@ -36,24 +64,24 @@ class MovieDialog extends Component {
         const { classes } = this.props;
         return (
             <Dialog fullScreen={true} onClose={this.props.onClose} open={this.props.open}>
-                <DialogTitle>영화 목록
+                <Paper className={classes.title} square={true}>
                     <IconButton aria-label="close" className={classes.closeButton} onClick={this.props.onClose}>
-                        <Close></Close>
+                        <CancelOutlined  color="secondary"></CancelOutlined>
                     </IconButton>
-                </DialogTitle>
-                <TableContainer component={Paper}>
+                </Paper>
+                <TableContainer component={Paper} square={true}  elevation={0}>
                     <Table aria-label="simple table">
                         <TableBody>
                             {this.state.movieData.map((row) => (
                                 <TableRow key={row.name}>
-                                    <TableCell align="right">
+                                    <TableCell className={classes.cell}>
                                         <img width='80' src={row.poster}></img>
                                         </TableCell>
-                                    <TableCell align="right" >
-                                        <p class={classes.text}>{(row.title.length<14)? row.title:row.title.substring(0,14)+"..."}</p>
-                                        <p>{row.prodYear}</p>
+                                    <TableCell className={classes.cell}>
+                                        <p class={classes.titleText}>{(row.title.length<14)? row.title:row.title.substring(0,14)+"..."}</p>
+                                        <p class={classes.yearText}>{row.prodYear}</p>
                                         </TableCell>
-                                    <TableCell align="right">
+                                    <TableCell align="right" className={classes.cell}>
                                         <IconButton variant="contained" color="primary"
                                         onClick={() => { this.props.addMovie(row) }}>
                                             <AddCircle></AddCircle>
@@ -64,7 +92,7 @@ class MovieDialog extends Component {
                         </TableBody>
                     </Table>
                 </TableContainer>
-                            <div class={classes.text}>
+                            <div class={classes.tableText}>
                                 {this.state.searchStatusText}
                             </div>
             </Dialog>

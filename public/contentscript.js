@@ -47,7 +47,7 @@ shouldReplaceText = function (node) {
                 if (text == "타이틀" || text == "감독" || text == "배우")
                     break;
                 nodeMap.set(nodeCount, node);
-                //console.log(text)
+
                 chrome.runtime.sendMessage({
                     message: 'nlpCheck',
                     data: text,
@@ -132,11 +132,14 @@ replaceDivIsEnabled = function (node, nodeName) {
 }
 
 blurBlock = function (textNode) {
+    if(textNode.parentElement.className=="swal-text")
+        return;
     let elementToReplace = findTargetParent(textNode);
     let blurText = "filter:blur(0.6em)";
     let styleText=elementToReplace.getAttribute("style");
     if (styleText==null||styleText != blurText) {
-        elementToReplace.setAttribute("style",blurText);
+        elementToReplace.style.filter="blur(0.6em)";
+        elementToReplace.spoilerText=textNode.data;
         elementToReplace.addEventListener("click", clickEventWrapper, false);
     }
 }
@@ -148,16 +151,59 @@ clickEventWrapper=function(event){
 openBlurred = function (event, node) {
     event.preventDefault();
     event.stopPropagation();
-    if (confirm("스포일러일 가능성이 있습니다.\n정말 차단을 해제하시겠습니까?")) {
-        node.removeAttribute("style");
-        node.removeEventListener("click", clickEventWrapper, false);
-    }
-    return false;
+    //let removeBlur=confirm("스포일러일 가능성이 있습니다.\n정말 차단을 해제하시겠습니까?");
+    swal({
+        title: "정말 차단을 해제하시겠습니까?",
+        text:"스포일러일 가능성이 있습니다.",
+        buttons: {
+            yes: { text: "예", value: true },
+            no: { text: "아니오", value: false }
+        },
+        icon:"warning",
+    }).then(
+        (value) => {
+            if (value) {
+                node.style.filter = "";
+                node.removeEventListener("click", clickEventWrapper, false);
+                spoilerPopUp(node.spoilerText);
+            }
+
+        }
+    )
+}
+
+function spoilerPopUp(text) {
+    swal({
+        title: "스포일러가 포함되어 있습니까?",
+        text:text,
+        buttons: {
+            yes: { text: "예", value: "yes" },
+            no: { text: "아니오", value: "no" }
+        },
+        icon: "info",
+    }).then(
+        (value) => {
+            let isSpoiler = null;
+            if (value == "yes")
+                isSpoiler = true;
+            else if (value == "no")
+                isSpoiler = false;
+            else
+                return;
+            chrome.runtime.sendMessage({
+                message: 'report',
+                data: text,
+                isSpoiler: isSpoiler
+            });
+        }
+    )
 }
 
 findTargetParent = function (start) {
     let cur = start;
     while (cur.parentElement != undefined) {
+        if(cur.style&&cur.style.position=="absolute")
+            return cur;
         let parentNode = cur.parentElement
         let siblingNodes = parentNode.childNodes;
         if (cur.nodeName == "LI")
@@ -209,12 +255,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     if (request.message === 'getMovieDataReply') {
         movieData = request.movieData;
+        /*
         if (movieDataLength > movieData.length || (movieData.length == 0 && movieDataLength == 1))
             window.location.reload();
         if (level != request.blockPower && level != -1) {
 
             window.location.reload();
         }
+        */
         level = request.blockPower;
         if (request.onWhiteList == false || (request.onWhiteList == undefined && whiteListChecker == false)) {
 
@@ -236,13 +284,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         }
         whiteListChecker = request.onWhiteList;
     }
-    if (request.message == 'nlpReply' && request.isSpoiler) {
+    if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
-        if (node != undefined) {
+        if (request.isSpoiler && node != undefined) {
             let nodename = node.nodeName.toLowerCase();
-            if (nodename == "a"||nodename == "#text")
+            if (nodename == "a" || nodename == "#text")
                 blurBlock(node);
         }
+
     }
 })
 
@@ -254,4 +303,5 @@ chrome.runtime.sendMessage({
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
+
 //console.log("cur");
