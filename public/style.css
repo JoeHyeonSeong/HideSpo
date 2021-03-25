@@ -1,8 +1,18 @@
 :root{
     --primary:#21bb6f;
+    --true:#1fd6fe;
+    --false:#ff5e41;
 }
 .swal-button {
   background-color: var(--primary) !important;
+}
+
+.swal-button--yes {
+  background-color: var(--true) !important;
+}
+
+.swal-button--no {
+  background-color: var(--false) !important;
 }
 
 .swal-text{

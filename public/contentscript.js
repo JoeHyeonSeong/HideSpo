@@ -156,8 +156,8 @@ openBlurred = function (event, node) {
         title: "정말 차단을 해제하시겠습니까?",
         text:"스포일러일 가능성이 있습니다.",
         buttons: {
-            yes: { text: "예", value: true },
-            no: { text: "아니오", value: false }
+            yes: { text: "O", value: true },
+            no: { text: "X", value: false }
         },
         icon:"warning",
     }).then(
@@ -177,8 +177,8 @@ function spoilerPopUp(text) {
         title: "스포일러가 포함되어 있습니까?",
         text:text,
         buttons: {
-            yes: { text: "예", value: "yes" },
-            no: { text: "아니오", value: "no" }
+            yes: { text: "O", value: "yes" },
+            no: { text: "X", value: "no" }
         },
         icon: "info",
     }).then(
@@ -289,6 +289,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (request.isSpoiler && node != undefined) {
             let nodename = node.nodeName.toLowerCase();
             if (nodename == "a" || nodename == "#text")
+                console.log(Date.now()-startTime);
                 blurBlock(node);
         }
 
@@ -303,5 +304,5 @@ chrome.runtime.sendMessage({
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
-
+startTime=Date.now();
 //console.log("cur");

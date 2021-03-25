@@ -19,6 +19,7 @@ try {
 catch {
     console.log('fail to load data');
 }
+
 const url = chrome.runtime.getURL('datas/wordindex.json');
 let wordindex;
 fetch(url)
@@ -148,7 +149,7 @@ function trimRole(newData) {
             if (!wordExist(role) && isNaN(role)) {
                 insertActor(actors, role);
                 let splitted = role.split(" ");
-                if (splitted.length > 1&&!wordExist(role) && isNaN(role))
+                if (splitted.length > 1&&!wordExist(splitted[0]) && isNaN(splitted[0]))
                     actors.push(splitted[0]);
             }
         }

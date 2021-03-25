@@ -12,15 +12,16 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import Slider from '@material-ui/core/Slider';
-import { Search, Cancel } from '@material-ui/icons';
+import { Search, Close,Cancel } from '@material-ui/icons';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
+
 const styles = {
     root: {
         background: '#FFFFFF',
         textAlign: 'center',
         overflow: 'hidden',
-        minWidth:260
+        width:260
     },
     wrap: {
         padding: 10,
@@ -34,10 +35,13 @@ const styles = {
         fontSize: 16,
         padding:5,
         fontWeight: "fontWeightMedium",
+        position:"relative",
+        zIndex:2
     },
     table: {
-        minHeight: 240,
-        display:"table"
+        display:"flex",
+        minHeight:160,
+        alignItems:"center"
     },
     fullButton: {
         //background: '#ffa703',
@@ -47,7 +51,15 @@ const styles = {
         margin:10
     },
     text: {
-        //textAlign:"left"
+        textAlign:"center",
+        position:"relative",
+        color:"#000000f5",
+        backgroundColor:"#ffffffed",
+        bottom:"-50%",
+        width:"100%",
+        height:"50%",
+        display:"flex",
+        alignItems:"center"
     },
     titleText:{
         fontWeight:"bold",
@@ -57,8 +69,7 @@ const styles = {
         fontSize:"smaller"
     },
     tableText:{
-        display:"table-cell",
-        verticalAlign:"middle",
+        width:"100%",
         color:"#0000006b"
     },
     search: {
@@ -73,25 +84,29 @@ const styles = {
             borderRadius: 25,
         },
     },
-    cell1:{
-        padding:8,
-        textAlign:"right"
-    },
     cell2:{
         padding:8,
         textAlign:"right",
         width:"100%"
     },
     row:{
-        width:240,
-        minHeight:126,
+        minWidth:120,
+        minHeight:160,
         display:"flex",
         margin:10,
-        border: "solid 1px #00000026",
-        borderRadius:10
+        borderRadius:10,
+        position:"relative"
     },
     poster:{
         borderRadius:10
+    },
+    deleteButton:{
+        position:"absolute",
+        right:"0%",
+        padding:4
+    },
+    width100:{
+        width:"100%"
     }
 };
 
@@ -154,7 +169,7 @@ class Main extends Component {
 
             <ThemeProvider theme={theme}>
                 <Paper className={classes.root} square={true}>
-                    <Paper className={classes.title} square={true}>
+                    <Paper className={classes.title} elevation={3} square={true}>
                         <img width='82' src="images/title.png"></img>
                         <TextField
                             onChange={this.handleChange}
@@ -176,27 +191,31 @@ class Main extends Component {
                     <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
                     <Paper className={classes.table} elevation={0}>
                         {this.state.movieDatas.map((row) => (
-                            <Paper className={classes.row} key={row.name} background='white'>
-                                <div className={classes.cell1}>
-                                    <img width='80px' className={classes.poster} src={row.poster}></img>
-                                </div>
-                                <div className={classes.cell2}>
-                                    <div>
-                                        <IconButton variant="contained" color='primary' onClick={() => { this.deleteMovie(row) }}>
-                                            <Cancel></Cancel>
-                                        </IconButton>
-                                    </div>
-
+                            <Paper className={classes.row} key={row.name} elevation={3}>
+                                <span style={{
+                                    textAlign: "right",
+                                    width: "100%",
+                                    borderRadius: 10,
+                                    overflow: "hidden",
+                                    backgroundImage: 'url('+row.poster+')',
+                                    backgroundPosition: 'center',
+                                    backgroundSize: 'cover'
+                                }}>
+                                    <IconButton color="secondary" className={classes.deleteButton} variant="contained" onClick={() => { this.deleteMovie(row) }}>
+                                        <Close></Close>
+                                    </IconButton>
                                     <div className={classes.text}>
-                                        <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
-                                        <p class={classes.yearText}>{row.prodYear}</p>
-                                    </div>
-                                </div>
+                                        <div className={classes.width100}>
+                                            <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
+                                            <p class={classes.yearText}>{row.prodYear}</p>
+                                        </div>
 
+                                    </div>
+                                </span>
                             </Paper>
                         ))}
                         <div class={classes.tableText}>
-                                {tableText}
+                            {tableText}
                             </div>
                     </Paper>
                     <Button
