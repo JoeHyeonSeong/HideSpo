@@ -130,11 +130,16 @@ spoCheck = function (node) {
         }
         if (checkPlural && checkChildWithText) {
             for (let child of node.childNodes) {
+                if (child.nodeName.toLowerCase() == "#comment")
+                    continue;
                 var oldNode = child.cloneNode(true);
                 wrapper.appendChild(oldNode);
+                var spaceNode = document.createTextNode(' ');
+                wrapper.appendChild(spaceNode);
                 
                 if ((child.textContent.replace(/(\s*)/g, "") == "" || child.textContent.length == 1) || (wrapper.textContent.length > 100)) {
                     if (wrapper.textContent.length > 100) {
+                        wrapper.removeChild(spaceNode);
                         wrapper.removeChild(oldNode);
                         checkRemoveChild = true;
                     }
@@ -151,6 +156,7 @@ spoCheck = function (node) {
                 if (checkRemoveChild) {
                     checkRemoveChild = false;
                     wrapper.appendChild(oldNode);
+                    wrapper.appendChild(spaceNode);
                 }
             }
             if (!checkIfDivided) {
