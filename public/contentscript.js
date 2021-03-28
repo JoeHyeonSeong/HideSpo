@@ -156,7 +156,7 @@ spoCheck = function (node) {
 
 replaceDivIsEnabled = function (node, nodeName) {
 
-    if ((nodeName == "#text") && (node.data.replaceAll('↵', "").trim().length == 0)) {
+    if ((nodeName == "#text") && (node.textContent.replaceAll('↵', "").trim().length == 0)) {
         return false;
     }
 
@@ -193,7 +193,7 @@ blurBlock = function (textNode) {
     let styleText=elementToReplace.getAttribute("style");
     if (styleText==null||styleText != blurText) {
         elementToReplace.style.filter="blur(0.6em)";
-        elementToReplace.spoilerText=textNode.data;
+        elementToReplace.spoilerText=textNode.textContent;
         elementToReplace.addEventListener("click", clickEventWrapper, false);
     }
 }
