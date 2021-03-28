@@ -14,7 +14,7 @@ shouldReplaceText = function (node) {
     var titleSpoiler = false;
     var actorSpoiler = false;
     var directorSpoiler = false;
-    var text = node.data;
+    var text = node.textContent;// node.data 를 textContent로 바꿈
     var isSpoiler = false;
     if (text.indexOf("http") == 0)
         return false;
@@ -73,30 +73,84 @@ shouldReplaceText = function (node) {
 
 spoCheck = function (node) {
     if (movieData.length <= 0)
-        return;
+        return false;
     let textContent=node.textContent;
     //NOTE: when loading, the first time the node is null when we call this from browser.tabs.onUpdated.addListener
     if (!node||textContent=="") {
-        return;
+        return false;
     }
     if (replaceDivIsEnabled(node, node.nodeName)) {
+        var childCount = 0;
+        var tempTag = "";                   //같은 태그의 형제들을 가지고있는지 확인하기 위한 임시 변수
+        var checkPlural = false;            //노드 자식들의 복수인지 아닌지 체크하기위한 변수
+        var checkChildWithText = false;     //노드 자식들이 text노드 포함되어있는지 확인, checktext로 반환된 값을 상위로 올려줌
+        var checkText = false;              //text노드인지 확인
+        var checkIfDivided = false;         //분할되었는지 확인
+        var wrapper = document.createElement("div");
         for (let child of node.childNodes) {
-
-            //NOTE: sometimes the nodename is lowercase
-            if (child === undefined)
-                continue;
             var toLowerchildNodeName = child.nodeName.toLowerCase();
-            //a sometimes contains inner elements, so we have to start with A replacement
-            if (toLowerchildNodeName === "#text") {
-                var replace = shouldReplaceText(child);
-                if (replace)
-                    blurBlock(child);
+            //NOTE: sometimes the nodename is lowercase
+            if (child === undefined) 
+                continue;            
+            childCount++;
+            if (childCount == 1) {
+                tempTag = toLowerchildNodeName;
+                checkPlural = true;
             } else {
-                //check if already marked
+                if (tempTag != toLowerchildNodeName && toLowerchildNodeName != "#text" && tempTag != "#text")                    
+                    checkPlural = false;
+                if (toLowerchildNodeName != "#text")
+                    tempTag = toLowerchildNodeName;
+            }
+            
+            if (toLowerchildNodeName === "#text") {
+                checkText = true;
+                var oldNode = child.cloneNode(false);
+                wrapper.appendChild(oldNode);
+                if (childCount == node.childNodes.length && childCount != 1) {
+                    wrapper.normalize();
+                    checkText = false;
+                    if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
+                        console.log("1!!!");
+                        console.log(wrapper.textContent);
+                        var replace = shouldReplaceText(wrapper);
+                        wrapper = document.createElement("div");
+                        if (replace)
+                            blurBlock(child);
+                    }
+                }
+            } else {
                 //NOTE: we don't call it on the created div
-                spoCheck(child);
+                if (spoCheck(child))
+                    checkChildWithText = true;
             }
         }
+        if (checkPlural && checkChildWithText) {
+            for (let child of node.childNodes) {
+                var oldNode = child.cloneNode(true);
+                wrapper.appendChild(oldNode);
+                if (child.textContent == "" && wrapper.textContent != "") {
+                    checkIfDivided = true;
+                    console.log("222!!!");
+                    console.log(wrapper.textContent);
+                    var replaceDivided = shouldReplaceText(wrapper);
+                    if (replaceDivided)
+                        blurBlock(node);
+                    wrapper = document.createElement("div");
+                }
+            }
+            if (!checkIfDivided) {
+                if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
+                    console.log("333333!!!");
+                    console.log(node.textContent);
+                    var replaceConcat = shouldReplaceText(node);
+                    if (replaceConcat)
+                        blurBlock(node);
+                }
+            }
+            checkIfDivided = false;
+        }
+        return checkText;
     }
 }
 
