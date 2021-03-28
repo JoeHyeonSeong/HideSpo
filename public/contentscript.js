@@ -114,8 +114,8 @@ spoCheck = function (node) {
                     wrapper.normalize();
                     checkText = false;
                     if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
-                        console.log("1!!!");
-                        console.log(wrapper.textContent);
+                        //console.log("_________");
+                        //console.log(wrapper.textContent);
                         var replace = shouldReplaceText(wrapper);
                         wrapper = document.createElement("div");
                         if (replace)
@@ -140,8 +140,8 @@ spoCheck = function (node) {
                     }
                     if (wrapper.textContent.replace(/(\s*)/g, "").length > 1) {
                         checkIfDivided = true;
-                        console.log("222!!!");
-                        console.log(wrapper.textContent);
+                        //console.log("_________");
+                        //console.log(wrapper.textContent);
                         var replaceDivided = shouldReplaceText(wrapper);
                         if (replaceDivided)
                             blurBlock(node);
@@ -156,8 +156,8 @@ spoCheck = function (node) {
             if (!checkIfDivided) {
                 if (childCount > 1) {
                     if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
-                        console.log("333333!!!");
-                        console.log(node.textContent);
+                        //console.log("_________");
+                        //console.log(node.textContent);
                         var replaceConcat = shouldReplaceText(node);
                         if (replaceConcat)
                             blurBlock(node);
