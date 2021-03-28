@@ -87,11 +87,14 @@ spoCheck = function (node) {
         var checkText = false;              //text노드인지 확인
         var checkIfDivided = false;         //분할되었는지 확인
         var wrapper = document.createElement("div");
+        var checkRemoveChild = false;
         for (let child of node.childNodes) {
             var toLowerchildNodeName = child.nodeName.toLowerCase();
             //NOTE: sometimes the nodename is lowercase
-            if (child === undefined) 
-                continue;            
+            if (child === undefined)
+                continue;
+            if (toLowerchildNodeName == "#comment")
+                continue;       
             childCount++;
             if (childCount == 1) {
                 tempTag = toLowerchildNodeName;
@@ -129,23 +132,38 @@ spoCheck = function (node) {
             for (let child of node.childNodes) {
                 var oldNode = child.cloneNode(true);
                 wrapper.appendChild(oldNode);
-                if (child.textContent == "" && wrapper.textContent != "") {
-                    checkIfDivided = true;
-                    console.log("222!!!");
-                    console.log(wrapper.textContent);
-                    var replaceDivided = shouldReplaceText(wrapper);
-                    if (replaceDivided)
-                        blurBlock(node);
+                
+                if ((child.textContent.replace(/(\s*)/g, "") == "" || child.textContent.length == 1) || (wrapper.textContent.length > 100)) {
+                    if (wrapper.textContent.length > 100) {
+                        wrapper.removeChild(oldNode);
+                        checkRemoveChild = true;
+                    }
+                    if (wrapper.textContent.replace(/(\s*)/g, "").length > 1) {
+                        checkIfDivided = true;
+                        console.log("222!!!");
+                        console.log(wrapper.textContent);
+                        var replaceDivided = shouldReplaceText(wrapper);
+                        if (replaceDivided)
+                            blurBlock(node);
+                    }                    
                     wrapper = document.createElement("div");
+                }
+                if (checkRemoveChild) {
+                    checkRemoveChild = false;
+                    wrapper.appendChild(oldNode);
                 }
             }
             if (!checkIfDivided) {
-                if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
-                    console.log("333333!!!");
-                    console.log(node.textContent);
-                    var replaceConcat = shouldReplaceText(node);
-                    if (replaceConcat)
-                        blurBlock(node);
+                if (childCount > 1) {
+                    if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
+                        console.log("333333!!!");
+                        console.log(node.textContent);
+                        var replaceConcat = shouldReplaceText(node);
+                        if (replaceConcat)
+                            blurBlock(node);
+                    }                    
+                } else {
+                    checkText = true;
                 }
             }
             checkIfDivided = false;
@@ -193,7 +211,7 @@ blurBlock = function (textNode) {
     let styleText=elementToReplace.getAttribute("style");
     if (styleText==null||styleText != blurText) {
         elementToReplace.style.filter="blur(0.6em)";
-        elementToReplace.spoilerText=textNode.textContent;
+        elementToReplace.spoilerText = textNode.textContent;
         elementToReplace.addEventListener("click", clickEventWrapper, false);
     }
 }
