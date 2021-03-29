@@ -10,7 +10,7 @@ String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
 }
 
-shouldReplaceText = function (node) {
+shouldReplaceText = function (node, textNode) {
     var titleSpoiler = false;
     var actorSpoiler = false;
     var directorSpoiler = false;
@@ -116,7 +116,7 @@ spoCheck = function (node) {
                     if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
                         //console.log("_________");
                         //console.log(wrapper.textContent);
-                        var replace = shouldReplaceText(wrapper);
+                        var replace = shouldReplaceText(child,wrapper);
                         wrapper = document.createElement("div");
                         if (replace)
                             blurBlock(child);
@@ -145,7 +145,7 @@ spoCheck = function (node) {
                         checkIfDivided = true;
                         //console.log("_________");
                         //console.log(wrapper.textContent);
-                        var replaceDivided = shouldReplaceText(wrapper);
+                        var replaceDivided = shouldReplaceText(node,wrapper);
                         if (replaceDivided)
                             blurBlock(node);
                     }
@@ -163,7 +163,7 @@ spoCheck = function (node) {
                     if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
                         //console.log("_________");
                         //console.log(node.textContent);
-                        var replaceConcat = shouldReplaceText(node);
+                        var replaceConcat = shouldReplaceText(node,node);
                         if (replaceConcat)
                             blurBlock(node);
                     }                    
@@ -244,7 +244,6 @@ openBlurred = function (event, node) {
                 node.removeEventListener("click", clickEventWrapper, false);
                 spoilerPopUp(node.spoilerText);
             }
-
         }
     )
 }
@@ -363,13 +362,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
-        if (request.isSpoiler && node != undefined) {
+        if (request.isSpoiler && node != undefined && node.parentElement != undefined) {
             let nodename = node.nodeName.toLowerCase();
-            if (nodename == "a" || nodename == "#text")
-                console.log(Date.now()-startTime);
+            //if (nodename == "a" || nodename == "#text")
+                console.log(Date.now() - startTime);
                 blurBlock(node);
         }
-
     }
 })
 
