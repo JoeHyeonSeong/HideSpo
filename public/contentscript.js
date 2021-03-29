@@ -210,15 +210,15 @@ replaceDivIsEnabled = function (node, nodeName) {
     }
 }
 
-blurBlock = function (textNode) {
-    if(textNode.parentElement.className=="swal-text")
+blurBlock = function (node, text) {
+    if (node.parentElement.className=="swal-text")
         return;
-    let elementToReplace = findTargetParent(textNode);
+    let elementToReplace = findTargetParent(node);
     let blurText = "filter:blur(0.6em)";
     let styleText=elementToReplace.getAttribute("style");
     if (styleText==null||styleText != blurText) {
         elementToReplace.style.filter="blur(0.6em)";
-        elementToReplace.spoilerText = textNode.textContent;
+        elementToReplace.spoilerText = text
         elementToReplace.addEventListener("click", clickEventWrapper, false);
     }
 }
@@ -369,7 +369,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             //if (nodename == "a" || nodename == "#text")
             console.log(Date.now() - startTime);
             console.log(request.data);
-            blurBlock(node);
+            blurBlock(node, request.data);
         }
     }
 })
