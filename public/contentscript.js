@@ -107,7 +107,8 @@ spoCheck = function (node) {
             }
             
             if (toLowerchildNodeName === "#text") {
-                checkText = true;
+                if (child.textContent.replace(/(\s*)/g, "") != "")
+                    checkText = true;
                 var oldNode = child.cloneNode(false);
                 wrapper.appendChild(oldNode);
                 if (childCount == node.childNodes.length && childCount != 1) {
@@ -118,8 +119,8 @@ spoCheck = function (node) {
                         //console.log(wrapper.textContent);
                         var replace = shouldReplaceText(child,wrapper);
                         wrapper = document.createElement("div");
-                        if (replace)
-                            blurBlock(child);
+                        /*if (replace)
+                            blurBlock(child);*/
                     }
                 }
             } else {
@@ -130,12 +131,14 @@ spoCheck = function (node) {
         }
         if (checkPlural && checkChildWithText) {
             for (let child of node.childNodes) {
+                if (child === undefined)
+                    continue;
                 if (child.nodeName.toLowerCase() == "#comment")
                     continue;
                 var oldNode = child.cloneNode(true);
                 wrapper.appendChild(oldNode);
                 var spaceNode = document.createTextNode('s');
-                
+
                 if ((child.textContent.replace(/(\s*)/g, "") == "" || child.textContent.length == 1) || (wrapper.textContent.length > 100)) {
                     if (wrapper.textContent.length > 100) {
                         wrapper.removeChild(oldNode);
@@ -145,9 +148,9 @@ spoCheck = function (node) {
                         checkIfDivided = true;
                         //console.log("_________");
                         //console.log(wrapper.textContent);
-                        var replaceDivided = shouldReplaceText(node,wrapper);
-                        if (replaceDivided)
-                            blurBlock(node);
+                        var replaceDivided = shouldReplaceText(node, wrapper);
+                        /*if (replaceDivided)
+                            blurBlock(node);*/
                     }
                     wrapper = document.createElement("div");
                 } else {
@@ -163,16 +166,15 @@ spoCheck = function (node) {
                     if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
                         //console.log("_________");
                         //console.log(node.textContent);
-                        var replaceConcat = shouldReplaceText(node,node);
-                        if (replaceConcat)
-                            blurBlock(node);
-                    }                    
+                        var replaceConcat = shouldReplaceText(node, node);
+                        /*if (replaceConcat)
+                            blurBlock(node);*/
+                    }
                 } else {
                     checkText = true;
                 }
             }
-            checkIfDivided = false;
-        }
+        } 
         return checkText;
     }
 }
@@ -362,11 +364,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
-        if (request.isSpoiler && node != undefined && node.parentElement != undefined) {
+        if (request.isSpoiler && node != undefined) {
             let nodename = node.nodeName.toLowerCase();
             //if (nodename == "a" || nodename == "#text")
-                console.log(Date.now() - startTime);
-                blurBlock(node);
+            console.log(Date.now() - startTime);
+            blurBlock(node);
         }
     }
 })
