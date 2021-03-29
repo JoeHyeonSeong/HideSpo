@@ -14,7 +14,7 @@ shouldReplaceText = function (node, textNode) {
     var titleSpoiler = false;
     var actorSpoiler = false;
     var directorSpoiler = false;
-    var text = node.textContent;// node.data 를 textContent로 바꿈
+    var text = textNode.textContent;// node.data 를 textContent로 바꿈
     var isSpoiler = false;
     if (text.indexOf("http") == 0)
         return false;
@@ -137,7 +137,7 @@ spoCheck = function (node) {
                     continue;
                 var oldNode = child.cloneNode(true);
                 wrapper.appendChild(oldNode);
-                var spaceNode = document.createTextNode('s');
+                var spaceNode = document.createTextNode(' ');
 
                 if ((child.textContent.replace(/(\s*)/g, "") == "" || child.textContent.length == 1) || (wrapper.textContent.length > 100)) {
                     if (wrapper.textContent.length > 100) {
@@ -368,6 +368,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             let nodename = node.nodeName.toLowerCase();
             //if (nodename == "a" || nodename == "#text")
             console.log(Date.now() - startTime);
+            console.log(request.data);
             blurBlock(node);
         }
     }
