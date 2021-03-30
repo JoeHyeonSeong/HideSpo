@@ -4,24 +4,18 @@ import { Button } from '@material-ui/core';
 import TextField from '@material-ui/core/TextField';
 import { withStyles, createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import MovieDialog from './MovieDialog'
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import Slider from '@material-ui/core/Slider';
-import { Search, Close,Cancel } from '@material-ui/icons';
+import { Search, Close, NavigateNext,NavigateBefore } from '@material-ui/icons';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
+import Carousel from "react-material-ui-carousel"
 
 const styles = {
     root: {
         background: '#FFFFFF',
         textAlign: 'center',
         overflow: 'hidden',
-        width:260
+        width: 260
     },
     wrap: {
         padding: 10,
@@ -33,44 +27,43 @@ const styles = {
         background: '#ffa703',
         color: 'white',
         fontSize: 16,
-        padding:5,
+        padding: 5,
         fontWeight: "fontWeightMedium",
-        position:"relative",
-        zIndex:2
+        position: "relative",
+        zIndex: 2
     },
     table: {
-        display:"flex",
-        minHeight:160,
-        alignItems:"center"
+        minHeight:277.5,
+        lineHeight:'277.5px'
     },
     fullButton: {
         //background: '#ffa703',
-        color:'white',
-        borderRadius:25,
-        fontWeight:1000,
-        margin:10
+        color: 'white',
+        borderRadius: 25,
+        fontWeight: 1000,
+        margin: 10
     },
     text: {
-        textAlign:"center",
-        position:"relative",
-        color:"#000000f5",
-        backgroundColor:"#ffffffed",
-        bottom:"-50%",
-        width:"100%",
-        height:"50%",
-        display:"flex",
-        alignItems:"center"
+        textAlign: "center",
+        position: "relative",
+        color: "#000000f5",
+        backgroundColor: "#ffffffed",
+        bottom: "-50%",
+        width: "100%",
+        height: "50%",
+        display: "flex",
+        alignItems: "center"
     },
-    titleText:{
-        fontWeight:"bold",
+    titleText: {
+        fontWeight: "bold",
         wordBreak: "keep-all"
     },
-    yearText:{
-        fontSize:"smaller"
+    yearText: {
+        fontSize: "smaller"
     },
-    tableText:{
-        width:"100%",
-        color:"#0000006b"
+    tableText: {
+        width: "100%",
+        color: "#0000006b"
     },
     search: {
         color: '#FFFFFF',
@@ -84,29 +77,33 @@ const styles = {
             borderRadius: 25,
         },
     },
-    cell2:{
-        padding:8,
-        textAlign:"right",
-        width:"100%"
+    cell2: {
+        padding: 8,
+        textAlign: "right",
+        width: "100%"
     },
-    row:{
-        minWidth:120,
-        minHeight:160,
-        display:"flex",
-        margin:10,
-        borderRadius:10,
-        position:"relative"
+    row: {
+        width: 180,
+        minHeight: 240,
+        display: "flex",
+        margin: "10px auto",
+        borderRadius: 10,
+        position: "relative"
     },
-    poster:{
-        borderRadius:10
+    poster: {
+        borderRadius: 10
     },
-    deleteButton:{
-        position:"absolute",
-        right:"0%",
-        padding:4
+    deleteButton: {
+        position: "absolute",
+        right: "0%",
+        padding: 4,
+        backgroundColor:'#00000042',
+        '&:hover': {
+            backgroundColor: '#0000008a',
+        },
     },
-    width100:{
-        width:"100%"
+    width100: {
+        width: "100%"
     }
 };
 
@@ -164,7 +161,8 @@ class Main extends Component {
 
     render() {
         const { classes } = this.props;
-        let tableText=(this.state.movieDatas.length>0)? "":"추가된 영화 없음";
+        let tableText = (this.state.movieDatas.length > 0) ? "" : "추가된 영화 없음";
+        console.log(this.movieData);
         return (
 
             <ThemeProvider theme={theme}>
@@ -188,42 +186,66 @@ class Main extends Component {
                         />
                     </Paper>
 
-                    <MovieDialog addMovie={this.addMovie} title={this.searchTitle} open={this.state.open} onClose={this.handleClose}></MovieDialog>
-                    <Paper className={classes.table} elevation={0}>
-                        {this.state.movieDatas.map((row) => (
-                            <Paper className={classes.row} key={row.name} elevation={3}>
-                                <span style={{
-                                    textAlign: "right",
-                                    width: "100%",
-                                    borderRadius: 10,
-                                    overflow: "hidden",
-                                    backgroundImage: 'url('+row.poster+')',
-                                    backgroundPosition: 'center',
-                                    backgroundSize: 'cover'
-                                }}>
-                                    <IconButton color="secondary" className={classes.deleteButton} variant="contained" onClick={() => { this.deleteMovie(row) }}>
-                                        <Close></Close>
-                                    </IconButton>
-                                    <div className={classes.text}>
-                                        <div className={classes.width100}>
-                                            <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
-                                            <p class={classes.yearText}>{row.prodYear}</p>
-                                        </div>
+                    <MovieDialog addMovie={this.addMovie}
+                        title={this.searchTitle}
+                        open={this.state.open}
+                        onClose={this.handleClose}></MovieDialog>
+                    <Carousel
+                        className={classes.table}
+                        autoPlay={false}
+                        animation={"slide"}
+                        navButtonsAlwaysVisible={(this.state.movieDatas.length>1)?true:false}
+                        navButtonsAlwaysInvisible={(this.state.movieDatas.length>1)?false:true}
+                        fullHeightHover={false}
+                        navButtonsProps={{
+                            style:{
+                                backgroundColor:'#ffffff00',
+                                padding:0,
+                                color:'#494949'
+                            }
+                        }}
+                        NextIcon={<NavigateNext fontSize="large"></NavigateNext>}
+                        PrevIcon={<NavigateBefore fontSize="large"></NavigateBefore>}
+                        >
+                        {
+                            (this.state.movieDatas.length > 0) ?
+                                this.state.movieDatas.map((row) => (
+                                    <Paper className={classes.row} key={row.name} elevation={3}>
+                                        <span style={
+                                            {
+                                            textAlign: "right",
+                                            width: "100%",
+                                            borderRadius: 10,
+                                            overflow: "hidden",
+                                            backgroundImage: (row.poster)?'url('+row.poster+')':'url(images/no_poster_found.png)',
+                                            backgroundPosition: 'center',
+                                            backgroundSize: 'cover'
+                                        }}>
+                                            <IconButton color="secondary" className={classes.deleteButton} variant="contained" onClick={() => { this.deleteMovie(row) }}>
+                                                <Close></Close>
+                                            </IconButton>
+                                            <div className={classes.text}>
+                                                <div className={classes.width100}>
+                                                    <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
+                                                    <p class={classes.yearText}>{row.prodYear}</p>
+                                                </div>
 
-                                    </div>
-                                </span>
-                            </Paper>
-                        ))}
-                        <div class={classes.tableText}>
-                            {tableText}
-                            </div>
-                    </Paper>
+                                            </div>
+                                        </span>
+                                    </Paper>
+                                )) :
+                                <div class={classes.tableText}>
+                                    {tableText}
+                                </div>
+                        }
+
+                    </Carousel>
                     <Button
                         variant="contained"
                         className={classes.fullButton}
                         color="primary"
                         onClick={this.toggleWhiteList}
-                        >
+                    >
                         {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
                     </Button>
                     {/*<Paper className={classes.wrap} elevation={3}>
