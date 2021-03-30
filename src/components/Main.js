@@ -33,8 +33,7 @@ const styles = {
         zIndex: 2
     },
     table: {
-        minHeight:277.5,
-        lineHeight:'277.5px'
+        minHeight:277.5
     },
     fullButton: {
         //background: '#ffa703',
@@ -63,7 +62,8 @@ const styles = {
     },
     tableText: {
         width: "100%",
-        color: "#0000006b"
+        color: "#0000006b",
+        lineHeight:'277.5px'
     },
     search: {
         color: '#FFFFFF',
