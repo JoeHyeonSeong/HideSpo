@@ -47,9 +47,9 @@ const styles = {
         position: "relative",
         color: "#000000f5",
         backgroundColor: "#ffffffed",
-        bottom: "-50%",
+        bottom: "-70%",
         width: "100%",
-        height: "50%",
+        height: "30%",
         display: "flex",
         alignItems: "center"
     },
