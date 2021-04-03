@@ -5,6 +5,21 @@ var whiteListChecker;
 var nodeMap = new Map();
 var nodeCount = 0;
 let attachObserver=false;
+const fuseOptions = {
+    //isCaseSensitive: false,
+    //includeScore: true,
+    // shouldSort: true,
+     includeMatches: true,
+     findAllMatches: true,
+     minMatchCharLength: 3,
+    // location: 0,
+    // threshold: 0.6,
+    // distance: 100,
+    // useExtendedSearch: false,
+    // ignoreLocation: false,
+    // ignoreFieldNorm: false,
+    
+};
 
 String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
@@ -15,29 +30,46 @@ shouldReplaceText = function (node, textNode) {
     var actorSpoiler = false;
     var directorSpoiler = false;
     var text = textNode.textContent;// node.data 를 textContent로 바꿈
+    var fuseContainer;
     var isSpoiler = false;
     if (text.indexOf("http") == 0)
         return false;
     text = text.replaceAll('↵', "").trim();
     if (text.length == 0)
         return false;
-
     text = text.replaceAll("\n", " ");
+    var fuse = new Fuse([text], fuseOptions);
     //there is no letter or number in the text
     for (let movie of movieData) {
+        fuseContainer = fuse.search(movie.title);
         //title
-        if (text.indexOf(movie.title) != -1)
+        if (text.indexOf(movie.title) != -1 ) 
             titleSpoiler = true;
+        else if (fuseContainer.length > 0) {
+            titleSpoiler = true;
+            text = reverseArrayForstatement(text, fuseContainer, "타이틀")
+            console.log(text);
+        }
         text = text.replaceAll(movie.title, "타이틀")
         //actor
         for (let actor of movie.actor) {
+            fuseContainer = fuse.search(actor);
             if (text.indexOf(actor) != -1)
                 actorSpoiler = true;
+            else if (fuseContainer.length > 0) {
+                actorSpoiler = true;
+                text = reverseArrayForstatement(text, fuseContainer, "배우")
+            }
             text = text.replaceAll(actor, "배우")
         }
         for (let director of movie.director) {
+            fuseContainer = fuse.search(director);
             if (text.indexOf(director) != -1)
                 directorSpoiler = true;
+            else if (fuseContainer.length > 0) {
+                directorSpoiler = true;
+                text = reverseArrayForstatement(text, fuseContainer, "감독")
+            }
             text = text.replaceAll(director, "감독")
         }
     }
@@ -71,6 +103,19 @@ shouldReplaceText = function (node, textNode) {
     return isSpoiler;
 }
 
+reverseArrayForstatement = function (text, fuseContainer, type) {
+    var tempText;                   // 문자열 치환을 위한 임시 변수
+    var indicesContainer = fuseContainer[0].matches[0].indices;
+    for (let order = indicesContainer.length - 1; order >= 0; order--) {
+        tempText = text;
+        if (text.substring(indicesContainer[order][0], indicesContainer[order][0] + 1) == " ")
+            text = tempText.substring(0, indicesContainer[order][0] + 1) + type + tempText.substring(indicesContainer[order][1] + 1);
+        else
+            text = tempText.substring(0, indicesContainer[order][0]) + type + tempText.substring(indicesContainer[order][1] + 1);
+    }
+    return text;
+}
+
 spoCheck = function (node) {
     if (movieData.length <= 0)
         return false;
@@ -95,19 +140,19 @@ spoCheck = function (node) {
                 continue;
             if (toLowerchildNodeName == "#comment")
                 continue;       
+            
             childCount++;
             if (childCount == 1) {
                 tempTag = toLowerchildNodeName;
                 checkPlural = true;
             } else {
-                if (tempTag != toLowerchildNodeName && toLowerchildNodeName != "#text" && tempTag != "#text")                    
+                if (tempTag != toLowerchildNodeName && toLowerchildNodeName != "#text" && tempTag != "#text")             
                     checkPlural = false;
                 if (toLowerchildNodeName != "#text")
                     tempTag = toLowerchildNodeName;
             }
             
-            if (toLowerchildNodeName === "#text") {
-                if (child.textContent.replace(/(\s*)/g, "") != "")
+            if (toLowerchildNodeName === "#text" && child.textContent.replace(/(\s*)/g, "") != "") {
                     checkText = true;
                 var oldNode = child.cloneNode(false);
                 wrapper.appendChild(oldNode);
@@ -117,7 +162,7 @@ spoCheck = function (node) {
                     if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
                         //console.log("_________");
                         //console.log(wrapper.textContent);
-                        var replace = shouldReplaceText(child,wrapper);
+                        shouldReplaceText(child,wrapper);
                         wrapper = document.createElement("div");
                         /*if (replace)
                             blurBlock(child);*/
@@ -135,11 +180,15 @@ spoCheck = function (node) {
                     continue;
                 if (child.nodeName.toLowerCase() == "#comment")
                     continue;
+                var textWithoutSpace = child.textContent.replace(/(\s*)/g, "");
+                if (textWithoutSpace.length > 500)
+                    return checkText;
+
                 var oldNode = child.cloneNode(true);
                 wrapper.appendChild(oldNode);
                 var spaceNode = document.createTextNode(' ');
-
-                if ((child.textContent.replace(/(\s*)/g, "") == "" || child.textContent.length == 1) || (wrapper.textContent.length > 100)) {
+               
+                if ((textWithoutSpace == "" || textWithoutSpace.length == 1) || (wrapper.textContent.length > 100)) {
                     if (wrapper.textContent.length > 100) {
                         wrapper.removeChild(oldNode);
                         checkRemoveChild = true;
@@ -148,7 +197,7 @@ spoCheck = function (node) {
                         checkIfDivided = true;
                         //console.log("_________");
                         //console.log(wrapper.textContent);
-                        var replaceDivided = shouldReplaceText(node, wrapper);
+                        shouldReplaceText(node, wrapper);
                         /*if (replaceDivided)
                             blurBlock(node);*/
                     }
@@ -166,12 +215,12 @@ spoCheck = function (node) {
                     if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
                         //console.log("_________");
                         //console.log(node.textContent);
-                        var replaceConcat = shouldReplaceText(node, node);
+                        shouldReplaceText(node, node);
                         /*if (replaceConcat)
                             blurBlock(node);*/
                     }
                 } else {
-                    checkText = true;
+                   checkText = true;
                 }
             }
         } 
@@ -364,11 +413,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
+        //console.log(request.data);
         if (request.isSpoiler && node != undefined) {
             let nodename = node.nodeName.toLowerCase();
             //if (nodename == "a" || nodename == "#text")
             console.log(Date.now() - startTime);
-            console.log(request.data);
             blurBlock(node, request.data);
         }
     }
