@@ -144,19 +144,18 @@ function trimRole(newData) {
     let movie = newData[newData.length - 1];
     let actors = [];
     for (let a of movie.actor.slice(0, actorNum)) {
-        insertActor(actors, a[0]);
+        actors.push(a[0]);
         for (let role of a[1]) {
             if (!wordExist(role) && isNaN(role)) {
-                insertActor(actors, role);
-                let splitted = role.split(" ");
-                if (splitted.length > 1&&!wordExist(splitted[0]) && isNaN(splitted[0]))
-                    actors.push(splitted[0]);
+                actors.push(role);
             }
         }
     }
     actors.sort((a, b) => { return b.length - a.length });
     console.log(actors);
     movie.actor = actors;
+
+   console.log(newData);
     return newData;
 }
 

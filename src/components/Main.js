@@ -4,11 +4,14 @@ import { Button } from '@material-ui/core';
 import TextField from '@material-ui/core/TextField';
 import { withStyles, createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import MovieDialog from './MovieDialog'
+import Setting from './Setting'
 import Paper from '@material-ui/core/Paper';
 import { Search, Close, NavigateNext,NavigateBefore } from '@material-ui/icons';
+import SettingsIcon from '@material-ui/icons/Settings';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Carousel from "react-material-ui-carousel"
+
 
 const styles = {
     root: {
@@ -16,12 +19,6 @@ const styles = {
         textAlign: 'center',
         overflow: 'hidden',
         width: 260
-    },
-    wrap: {
-        padding: 10,
-        margin: 10,
-        background: '#FFFFFF',
-        textAlign: 'center'
     },
     title: {
         background: '#ffa703',
@@ -104,6 +101,13 @@ const styles = {
     },
     width100: {
         width: "100%"
+    },
+    settingButton:{
+        position:"fixed",
+        right:"0%",
+        top:"0%",
+        padding:"3px",
+        color:"#ffffff80"
     }
 };
 
@@ -121,19 +125,15 @@ const theme = createMuiTheme({
 
 class Main extends Component {
     state = {
-        open: false,
+        movieOpen: false,
+        settingOpen:false,
         movieDatas: [],
         onWhiteList: false,
-        blockPower: 1
+        blockPower:1
     }
     searchTitle = '';
     bodyText = '';
-    blockPowerText = [
-        '스포일러를 차단하지 않습니다.',
-        '의미를 분석해 스포일러일 확률이 높은 문장을 차단합니다.',
-        '영화의 제목이 포함된 문장을 차단합니다.',
-        '영화의 제목, 감독, 배우, 배역이 포함된 문장을 차단합니다.'
-    ];
+
     componentDidMount() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.message === "whiteList") {
@@ -168,10 +168,15 @@ class Main extends Component {
             <ThemeProvider theme={theme}>
                 <Paper className={classes.root} square={true}>
                     <Paper className={classes.title} elevation={3} square={true}>
+
                         <img width='82' src="images/title.png"></img>
+                        <IconButton className={classes.settingButton} variant="contained"
+                        onClick={this.handleSettingClickOpen}>
+                            <SettingsIcon></SettingsIcon>
+                        </IconButton>
                         <TextField
-                            onChange={this.handleChange}
-                            onKeyPress={this.handlePress}
+                            onChange={this.handleSearchChange}
+                            onKeyPress={this.handleSearchPress}
                             placeholder="영화제목"
                             className={classes.search}
                             InputProps={{
@@ -188,8 +193,13 @@ class Main extends Component {
 
                     <MovieDialog addMovie={this.addMovie}
                         title={this.searchTitle}
-                        open={this.state.open}
-                        onClose={this.handleClose}></MovieDialog>
+                        open={this.state.movieOpen}
+                        onClose={this.handleSearchClose}></MovieDialog>
+                        <Setting
+                        open={this.state.settingOpen}
+                        onClose={this.handleSettingClose}
+                        blockPower={this.state.blockPower}
+                        ></Setting>
                     <Carousel
                         className={classes.table}
                         autoPlay={false}
@@ -240,15 +250,7 @@ class Main extends Component {
                         }
 
                     </Carousel>
-                    <Button
-                        variant="contained"
-                        className={classes.fullButton}
-                        color="primary"
-                        onClick={this.toggleWhiteList}
-                    >
-                        {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
-                    </Button>
-                    {/*<Paper className={classes.wrap} elevation={3}>
+                    {/*<div>
                         <Slider
                             value={this.state.blockPower}
                             aria-labelledby="discrete-slider"
@@ -262,7 +264,16 @@ class Main extends Component {
                         <div>
                             {this.blockPowerText[this.state.blockPower]}
                         </div>
-                                    </Paper>*/}
+                    </div>
+                    */}
+                    <Button
+                        variant="contained"
+                        className={classes.fullButton}
+                        color="primary"
+                        onClick={this.toggleWhiteList}
+                    >
+                        {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
+                    </Button>
                 </Paper>
             </ThemeProvider>
 
@@ -288,7 +299,7 @@ class Main extends Component {
         }
         for (let m of this.state.movieDatas) {
             if (trimData.title === m.title && trimData.prodYear === m.prodYear) {
-                this.handleClose();
+                this.handleSearchClose();
                 return;
             }
         }
@@ -302,7 +313,7 @@ class Main extends Component {
             movieData: newDatas,
             add: true
         });
-        this.handleClose();
+        this.handleSearchClose();
     }
 
     deleteMovie = (value) => {
@@ -340,37 +351,39 @@ class Main extends Component {
 
     }
 
-    handleSliderChange = (event, newValue) => {
+    handleSettingClose = () => {
         this.setState({
-            blockPower: newValue
-        })
-        chrome.runtime.sendMessage({
-            message: 'blockPowerChange',
-            blockPower: newValue
-        });
-    }
-
-    handleClose = () => {
-        this.setState({
-            open: false
+            settingOpen: false
         })
     }
 
-    handleClickOpen = () => {
+    handleSettingClickOpen = () => {
+            this.setState({
+                settingOpen: true
+            })
+    };
+
+    handleSearchClose = () => {
+        this.setState({
+            movieOpen: false
+        })
+    }
+
+    handleSearchClickOpen = () => {
         if (this.searchTitle.length != 0) {
             this.setState({
-                open: true
+                movieOpen: true
             })
         }
     };
 
-    handleChange = (e) => {
+    handleSearchChange = (e) => {
         this.searchTitle = e.target.value;
     }
 
-    handlePress = (e) => {
+    handleSearchPress = (e) => {
         if (e.key === 'Enter') {
-            this.handleClickOpen();
+            this.handleSearchClickOpen();
         }
     }
 }
