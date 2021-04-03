@@ -308,6 +308,7 @@ async function report(str, isSpoiler) {
 
     let requestUrl = serverUrl + "/report";
     let data = { text: str, isSpoiler: isSpoiler }
+    nlpCheckMap.set(str, isSpoiler);
     await fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
