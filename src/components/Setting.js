@@ -48,7 +48,7 @@ class Setting extends Component {
         }
     }
 
-    handleSliderChange = (event, newValue) => {
+    handleBlockPowerChange = (event, newValue) => {
         this.setState({
             blockPower: newValue
         })
@@ -70,7 +70,7 @@ class Setting extends Component {
                             <FormLabel>
                                 스포일러 차단
                         </FormLabel>
-                            <RadioGroup value={this.state.blockPower} onChange={this.handleSliderChange}>
+                            <RadioGroup value={this.state.blockPower} onChange={this.handleBlockPowerChange}>
                                 <FormControlLabel value="0"
                                     control={<Radio color="primary" size="small" className={classes.radio} />}
                                     label={<Typography className={classes.formControlLabel}>차단 안 함</Typography>} />

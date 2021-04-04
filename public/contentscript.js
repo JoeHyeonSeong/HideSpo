@@ -302,11 +302,11 @@ openBlurred = function (event, node) {
 function spoilerPopUp(text) {
     swal({
         title: "스포일러가 포함되어 있습니까?",
-        text:text,
+        text: text,
         buttons: {
             yes: { text: "O", value: "yes" },
             no: { text: "X", value: "no" },
-            cancel:{text:"취소",value:"cancel"}
+            cancelButton: { text: "취소", value: "cancel" },
         },
         icon: "info",
     }).then(
