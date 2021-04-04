@@ -1,29 +1,33 @@
 /*global chrome*/
 import React, { Component } from 'react';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
 import { withStyles } from '@material-ui/core/styles';
-import DialogTitle from '@material-ui/core/DialogTitle';
 import Dialog from '@material-ui/core/Dialog';
-import IconButton from '@material-ui/core/IconButton';
-import {Close,Add} from '@material-ui/icons';
-import Slider from '@material-ui/core/Slider';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemText from '@material-ui/core/ListItemText';
 import Divider from '@material-ui/core/Divider';
+import Radio from '@material-ui/core/Radio';
+import RadioGroup from '@material-ui/core/RadioGroup';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Typography from '@material-ui/core/Typography';
+import BlockIcon from '@material-ui/icons/Block';
+import { FormControl, FormLabel } from '@material-ui/core';
 
 const styles = {
     root:{
-        width:200,
+        width:180,
         height:315,
-        margin:5
+        margin:5,
+    },
+    radio:{
+        padding:4
+    },
+    formControlLabel:{
+        fontSize:"80%"
     }
 };
+
 
 class Setting extends Component {
     state = {
@@ -35,7 +39,7 @@ class Setting extends Component {
         '영화 제목',
         '영화 제목, 감독, 배우, 배역'
     ];
-    blockDescription='스포일러 차단 방법';
+    blockDescription='스포일러 차단';
     componentDidUpdate(prevProps, prevState) {
         if (prevProps.open != this.props.open && this.props.open) {
             this.setState({
@@ -61,24 +65,29 @@ class Setting extends Component {
             <Dialog onClose={this.props.onClose} open={this.props.open}>
                 <List className={classes.root}>
                     <ListItem>
-                        <div>
-                            {this.blockDescription}
-                        </div>
-                        <Slider
-                            value={this.state.blockPower}
-                            aria-labelledby="discrete-slider"
-                            valueLabelDisplay="auto"
-                            onChange={this.handleSliderChange}
-                            step={1}
-                            min={0}
-                            max={3}
-                            marks={true}
-                        />
-                        <div>
-                            {this.blockPowerText[this.state.blockPower]}
-                        </div>
+
+                        <FormControl component="fieldset">
+                            <FormLabel>
+                                스포일러 차단
+                        </FormLabel>
+                            <RadioGroup value={this.state.blockPower} onChange={this.handleSliderChange}>
+                                <FormControlLabel value="0"
+                                    control={<Radio color="primary" size="small" className={classes.radio} />}
+                                    label={<Typography className={classes.formControlLabel}>차단 안 함</Typography>} />
+                                <FormControlLabel value="1"
+                                    control={<Radio color="primary" size="small" className={classes.radio} />}
+                                    label={<Typography className={classes.formControlLabel}>의미 분석</Typography>} />
+                                <FormControlLabel value="2"
+                                    control={<Radio color="primary" size="small" className={classes.radio} />}
+                                    label={<Typography className={classes.formControlLabel}>영화 제목</Typography>} />
+                                <FormControlLabel value="3"
+                                    control={<Radio color="primary" size="small" className={classes.radio} />}
+                                    label={<Typography className={classes.formControlLabel}>영화 키워드</Typography>} />
+                            </RadioGroup>
+                        </FormControl>
+
                     </ListItem>
-                    <Divider variant="inset" component="li" />
+                    <Divider />
                 </List>
 
             </Dialog>

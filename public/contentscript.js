@@ -305,7 +305,8 @@ function spoilerPopUp(text) {
         text:text,
         buttons: {
             yes: { text: "O", value: "yes" },
-            no: { text: "X", value: "no" }
+            no: { text: "X", value: "no" },
+            cancel:{text:"취소",value:"cancel"}
         },
         icon: "info",
     }).then(
