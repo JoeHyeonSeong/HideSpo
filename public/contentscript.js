@@ -13,7 +13,7 @@ const fuseOptions = {
      findAllMatches: true,
      minMatchCharLength: 3,
     // location: 0,
-    // threshold: 0.6,
+     threshold: 0.4,
     // distance: 100,
     // useExtendedSearch: false,
     // ignoreLocation: false,
@@ -38,7 +38,10 @@ shouldReplaceText = function (node, textNode) {
     if (text.length == 0)
         return false;
     text = text.replaceAll("\n", " ");
+    var replacedText = text;
     var fuse = new Fuse([text], fuseOptions);
+    //console.log(replacedText);
+    //console.log(node);
     //there is no letter or number in the text
     for (let movie of movieData) {
         fuseContainer = fuse.search(movie.title);
@@ -47,10 +50,9 @@ shouldReplaceText = function (node, textNode) {
             titleSpoiler = true;
         else if (fuseContainer.length > 0) {
             titleSpoiler = true;
-            text = reverseArrayForstatement(text, fuseContainer, "타이틀")
-            console.log(text);
+            replacedText = reverseArrayForstatement(text, fuseContainer, "타이틀")
         }
-        text = text.replaceAll(movie.title, "타이틀")
+        replacedText = replacedText.replaceAll(movie.title, "타이틀")
         //actor
         for (let actor of movie.actor) {
             fuseContainer = fuse.search(actor);
@@ -58,9 +60,9 @@ shouldReplaceText = function (node, textNode) {
                 actorSpoiler = true;
             else if (fuseContainer.length > 0) {
                 actorSpoiler = true;
-                text = reverseArrayForstatement(text, fuseContainer, "배우")
+                replacedText = reverseArrayForstatement(text, fuseContainer, "배우")
             }
-            text = text.replaceAll(actor, "배우")
+            replacedText = replacedText.replaceAll(actor, "배우")
         }
         for (let director of movie.director) {
             fuseContainer = fuse.search(director);
@@ -68,21 +70,22 @@ shouldReplaceText = function (node, textNode) {
                 directorSpoiler = true;
             else if (fuseContainer.length > 0) {
                 directorSpoiler = true;
-                text = reverseArrayForstatement(text, fuseContainer, "감독")
+                replacedText = reverseArrayForstatement(text, fuseContainer, "감독")
             }
-            text = text.replaceAll(director, "감독")
+            replacedText = replacedText.replaceAll(director, "감독")
         }
     }
     switch (level) {
         case 1:
             if (actorSpoiler || titleSpoiler || directorSpoiler) {
-                if (text == "타이틀" || text == "감독" || text == "배우")
+                if (replacedText == "타이틀" || replacedText == "감독" || replacedText == "배우")
                     break;
                 nodeMap.set(nodeCount, node);
 
                 chrome.runtime.sendMessage({
                     message: 'nlpCheck',
-                    data: text,
+                    data: replacedText,
+                    originData: text,
                     nodeNum:nodeCount
                 });
                 nodeCount++;
@@ -126,6 +129,7 @@ spoCheck = function (node) {
     }
     if (replaceDivIsEnabled(node, node.nodeName)) {
         var childCount = 0;
+        var childRealCount = 0;
         var tempTag = "";                   //같은 태그의 형제들을 가지고있는지 확인하기 위한 임시 변수
         var checkPlural = false;            //노드 자식들의 복수인지 아닌지 체크하기위한 변수
         var checkChildWithText = false;     //노드 자식들이 text노드 포함되어있는지 확인, checktext로 반환된 값을 상위로 올려줌
@@ -133,30 +137,39 @@ spoCheck = function (node) {
         var checkIfDivided = false;         //분할되었는지 확인
         var wrapper = document.createElement("div");
         var checkRemoveChild = false;
+        var toLowerchildClassName ;
         for (let child of node.childNodes) {
+            childRealCount++;
             var toLowerchildNodeName = child.nodeName.toLowerCase();
             //NOTE: sometimes the nodename is lowercase
             if (child === undefined)
                 continue;
             if (toLowerchildNodeName == "#comment")
                 continue;       
-            
             childCount++;
+            if (child.className != null)
+                toLowerchildClassName = child.className.toLowerCase();
+            else
+                toLowerchildClassName = "";
             if (childCount == 1) {
-                tempTag = toLowerchildNodeName;
+                tempTag = toLowerchildClassName;
                 checkPlural = true;
             } else {
-                if (tempTag != toLowerchildNodeName && toLowerchildNodeName != "#text" && tempTag != "#text")             
+                if (tempTag != toLowerchildClassName && toLowerchildNodeName != "#text" && tempTag != "#text")             
                     checkPlural = false;
                 if (toLowerchildNodeName != "#text")
-                    tempTag = toLowerchildNodeName;
+                    tempTag = toLowerchildClassName;
             }
-            
-            if (toLowerchildNodeName === "#text" && child.textContent.replace(/(\s*)/g, "") != "") {
-                    checkText = true;
+            if ((toLowerchildNodeName === "#text" && child.textContent.replace(/(\s*)/g, "") != "") || toLowerchildNodeName === "a" || toLowerchildNodeName === "br") {
+                checkText = true;
+                
                 var oldNode = child.cloneNode(false);
+                if (toLowerchildNodeName === "a" && child.title == child.textContent) 
+                    oldNode =document.createTextNode(child.textContent)
                 wrapper.appendChild(oldNode);
-                if (childCount == node.childNodes.length && childCount != 1) {
+                
+                if (childRealCount == node.childNodes.length && childCount != 1) {
+
                     wrapper.normalize();
                     checkText = false;
                     if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
@@ -173,9 +186,12 @@ spoCheck = function (node) {
                 if (spoCheck(child))
                     checkChildWithText = true;
             }
+            
         }
         if (checkPlural && checkChildWithText) {
+            
             for (let child of node.childNodes) {
+                
                 if (child === undefined)
                     continue;
                 if (child.nodeName.toLowerCase() == "#comment")
@@ -187,11 +203,12 @@ spoCheck = function (node) {
                 var oldNode = child.cloneNode(true);
                 wrapper.appendChild(oldNode);
                 var spaceNode = document.createTextNode(' ');
-               
                 if ((textWithoutSpace == "" || textWithoutSpace.length == 1) || (wrapper.textContent.length > 100)) {
                     if (wrapper.textContent.length > 100) {
-                        wrapper.removeChild(oldNode);
-                        checkRemoveChild = true;
+                        if (node.childNodes.length != 1) {
+                            wrapper.removeChild(oldNode);
+                            checkRemoveChild = true;
+                        }
                     }
                     if (wrapper.textContent.replace(/(\s*)/g, "").length > 1) {
                         checkIfDivided = true;
@@ -302,7 +319,7 @@ openBlurred = function (event, node) {
 function spoilerPopUp(text) {
     swal({
         title: "스포일러가 포함되어 있습니까?",
-        text: text,
+        text:text,
         buttons: {
             yes: { text: "O", value: "yes" },
             no: { text: "X", value: "no" },
@@ -329,7 +346,7 @@ function spoilerPopUp(text) {
 
 findTargetParent = function (start) {
     let cur = start;
-    while (cur.parentElement != undefined) {
+    /*while (cur.parentElement != undefined) {
         if(cur.style&&cur.style.position=="absolute")
             return cur;
         let parentNode = cur.parentElement
@@ -346,7 +363,7 @@ findTargetParent = function (start) {
             }
         }
         cur = parentNode;
-    }
+    }*/
 
     let result= start;
     if(result.nodeName=="#text")
@@ -414,12 +431,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
-        //console.log(request.data);
+        //console.log(request.originData);
         if (request.isSpoiler && node != undefined) {
             let nodename = node.nodeName.toLowerCase();
             //if (nodename == "a" || nodename == "#text")
             console.log(Date.now() - startTime);
-            blurBlock(node, request.data);
+            blurBlock(node, request.originData);
         }
     }
 })

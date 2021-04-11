@@ -127,8 +127,9 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             {
                 message: 'nlpReply',
                 isSpoiler: result,
-                nodeNum:request.nodeNum,
-                data:request.data
+                nodeNum: request.nodeNum,
+                data: request.data,
+                originData: request.originData
             });
     }else if(request.message === 'wordExist'){
         chrome.runtime.sendMessage({
