@@ -191,7 +191,8 @@ spoCheck = function (node) {
         if (checkPlural && checkChildWithText) {
             
             for (let child of node.childNodes) {
-                
+                if (node.childNodes.length == 1)
+                    continue;
                 if (child === undefined)
                     continue;
                 if (child.nodeName.toLowerCase() == "#comment")
@@ -212,9 +213,13 @@ spoCheck = function (node) {
                     }
                     if (wrapper.textContent.replace(/(\s*)/g, "").length > 1) {
                         checkIfDivided = true;
-                        //console.log("_________");
+                        
+                        //console.log("2_________");
+                        //console.log(child);
+                        //console.log(child.nodeName);
                         //console.log(wrapper.textContent);
                         shouldReplaceText(node, wrapper);
+                        checkText = false;
                         /*if (replaceDivided)
                             blurBlock(node);*/
                     }
@@ -230,9 +235,10 @@ spoCheck = function (node) {
             if (!checkIfDivided) {
                 if (childCount > 1) {
                     if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
-                        //console.log("_________");
+                        //console.log("3_________");
                         //console.log(node.textContent);
                         shouldReplaceText(node, node);
+                        checkText = false;
                         /*if (replaceConcat)
                             blurBlock(node);*/
                     }
