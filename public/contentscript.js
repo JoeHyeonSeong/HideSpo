@@ -105,7 +105,7 @@ spoCheck = function (node) {
             if (toLowerchildNodeName == "#comment")
                 continue;       
             childCount++;
-            if (child.className != null)
+            if (child.className != null && typeof child.className==String)
                 toLowerchildClassName = child.className.toLowerCase();
             else
                 toLowerchildClassName = "";
@@ -133,7 +133,7 @@ spoCheck = function (node) {
                     if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
                         //console.log("_________");
                         //console.log(wrapper.textContent);
-                        shouldReplaceText(child,wrapper);
+                        shouldReplaceText(node,wrapper);
                         wrapper = document.createElement("div");
                         /*if (replace)
                             blurBlock(child);*/
@@ -395,7 +395,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
-        //console.log(request.originData);
+        console.log(request.originData);
+        console.log(request.isSpoiler)
         if (request.isSpoiler && node != undefined) {
             let nodename = node.nodeName.toLowerCase();
             //if (nodename == "a" || nodename == "#text")

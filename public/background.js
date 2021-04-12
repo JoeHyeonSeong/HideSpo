@@ -156,10 +156,10 @@ function trimRole(newData) {
     for (let a of movie.actor.slice(0, actorNum)) {
         insertKeyword(actors, a[0]);
         for (let role of a[1]) {
-            if (!wordExist(role) && isNaN(role)) {
+            if (!wordExist(role)) {
                 insertKeyword(actors, role);
                 let splitted = role.split(" ");
-                if (splitted.length > 1&&!wordExist(splitted[0]) && isNaN(splitted[0]))
+                if (splitted.length > 1&&!wordExist(splitted[0]))
                     actors.push(splitted[0]);
             }
         }
