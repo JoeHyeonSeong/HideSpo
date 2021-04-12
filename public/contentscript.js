@@ -6,18 +6,15 @@ var nodeMap = new Map();
 var nodeCount = 0;
 let attachObserver=false;
 const fuseOptions = {
-    //isCaseSensitive: false,
-    //includeScore: true,
+    includeScore: true,
     // shouldSort: true,
      includeMatches: true,
      findAllMatches: true,
-     minMatchCharLength: 3,
-    // location: 0,
-     threshold: 0.4,
-    // distance: 100,
+     minMatchCharLength: 2,
+     threshold: 0.2,
     // useExtendedSearch: false,
-    // ignoreLocation: false,
-    // ignoreFieldNorm: false,
+     ignoreLocation: true,
+     ignoreFieldNorm: false,
     
 };
 
@@ -39,40 +36,76 @@ shouldReplaceText = function (node, textNode) {
         return false;
     text = text.replaceAll("\n", " ");
     var replacedText = text;
-    var fuse = new Fuse([text], fuseOptions);
+    
     //console.log(replacedText);
     //console.log(node);
     //there is no letter or number in the text
     for (let movie of movieData) {
-        fuseContainer = fuse.search(movie.title);
+        //keyword exact math
         //title
-        if (text.indexOf(movie.title) != -1 ) 
+        if (replacedText.indexOf(movie.title) != -1)
             titleSpoiler = true;
-        else if (fuseContainer.length > 0) {
-            titleSpoiler = true;
-            replacedText = reverseArrayForstatement(text, fuseContainer, "타이틀")
-        }
         replacedText = replacedText.replaceAll(movie.title, "타이틀")
         //actor
         for (let actor of movie.actor) {
-            fuseContainer = fuse.search(actor);
-            if (text.indexOf(actor) != -1)
+            if (replacedText.indexOf(actor) != -1)
                 actorSpoiler = true;
-            else if (fuseContainer.length > 0) {
-                actorSpoiler = true;
-                replacedText = reverseArrayForstatement(text, fuseContainer, "배우")
-            }
             replacedText = replacedText.replaceAll(actor, "배우")
         }
         for (let director of movie.director) {
-            fuseContainer = fuse.search(director);
-            if (text.indexOf(director) != -1)
+            if (replacedText.indexOf(director) != -1)
                 directorSpoiler = true;
-            else if (fuseContainer.length > 0) {
-                directorSpoiler = true;
-                replacedText = reverseArrayForstatement(text, fuseContainer, "감독")
-            }
             replacedText = replacedText.replaceAll(director, "감독")
+        }
+        //fuzzy search
+        //title
+        var match
+        match,replacedText=findAndReplaceByFuzzy(replacedText,movie.title,"타이틀")
+        titleSpoiler=titleSpoiler||match;
+        /*
+        fuse = new Fuse([replacedText], fuseOptions);
+        while(true){
+            fuseContainer = fuse.search(movie.title);
+            if (fuseContainer.length > 0) {
+                titleSpoiler = true;
+                replacedText = replaceFuse(replacedText, fuseContainer, "타이틀");
+            }
+            else
+                break;
+        }*/
+        //actor
+
+        for (let actor of movie.actor) {
+            match, replacedText = findAndReplaceByFuzzy(replacedText, actor, "배우")
+            actorSpoiler = actorSpoiler || match;
+            /*
+            fuse = new Fuse([replacedText], fuseOptions);
+            while (true) {
+                fuseContainer = fuse.search(actor);
+                if (fuseContainer.length > 0) {
+                    actorSpoiler = true;
+                    replacedText = replaceFuse(replacedText, fuseContainer, "배우")
+                }
+                else
+                    break;
+            }*/
+        }
+
+        for (let director of movie.director) {
+            match, replacedText = findAndReplaceByFuzzy(replacedText, director, "감독")
+            directorSpoiler = directorSpoiler || match;
+            /*
+            while (true) {
+                fuse = new Fuse([replacedText], fuseOptions);
+                fuseContainer = fuse.search(director);
+                if (fuseContainer.length > 0) {
+                    directorSpoiler = true;
+                    replacedText = replaceFuse(replacedText, fuseContainer, "감독")
+                }
+                else
+                    break;
+            }
+            */
         }
     }
     switch (level) {
@@ -106,16 +139,38 @@ shouldReplaceText = function (node, textNode) {
     return isSpoiler;
 }
 
-reverseArrayForstatement = function (text, fuseContainer, type) {
-    var tempText;                   // 문자열 치환을 위한 임시 변수
-    var indicesContainer = fuseContainer[0].matches[0].indices;
-    for (let order = indicesContainer.length - 1; order >= 0; order--) {
-        tempText = text;
-        if (text.substring(indicesContainer[order][0], indicesContainer[order][0] + 1) == " ")
-            text = tempText.substring(0, indicesContainer[order][0] + 1) + type + tempText.substring(indicesContainer[order][1] + 1);
-        else
-            text = tempText.substring(0, indicesContainer[order][0]) + type + tempText.substring(indicesContainer[order][1] + 1);
+findAndReplaceByFuzzy = function (text, key, type) {
+    match = false;
+    fuse = new Fuse([text], fuseOptions);
+    fuseContainer = fuse.search(key);
+    if (fuseContainer.length > 0) {
+        match = true;
+        text = replaceFuse(text, fuseContainer, type);
     }
+    return match, text;
+}
+
+replaceFuse = function (text, fuseContainer, type) {
+    console.log(text);
+    //console.log(fuseContainer);
+    var indices = fuseContainer[0].matches[0].indices[0];
+
+
+    for (fuse of fuseContainer) {
+        var matchString = "["
+        for (i of fuse.matches[0].indices) {
+            //console.log(i[0] + " " + i[1])
+            matchString += text.substring(i[0], i[1])
+        }
+        matchString += "]"
+        console.log(matchString)
+    }
+
+
+    
+    //console.log("[" + text.substring(indices[0], indices[1]) + "]")
+    //text = text.substring(0, indices[0] + 1) + type + text.substring(indices[1]);
+    //console.log(text);
     return text;
 }
 
