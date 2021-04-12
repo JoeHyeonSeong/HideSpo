@@ -175,7 +175,7 @@ spoCheck = function (node) {
                     if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
                         //console.log("_________");
                         //console.log(wrapper.textContent);
-                        shouldReplaceText(child,wrapper);
+                        shouldReplaceText(node,wrapper);
                         wrapper = document.createElement("div");
                         /*if (replace)
                             blurBlock(child);*/
