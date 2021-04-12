@@ -5,18 +5,6 @@ var whiteListChecker;
 var nodeMap = new Map();
 var nodeCount = 0;
 let attachObserver=false;
-const fuseOptions = {
-    includeScore: true,
-    // shouldSort: true,
-     includeMatches: true,
-     findAllMatches: true,
-     minMatchCharLength: 2,
-     threshold: 0.2,
-    // useExtendedSearch: false,
-     ignoreLocation: true,
-     ignoreFieldNorm: false,
-    
-};
 
 String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
@@ -27,7 +15,6 @@ shouldReplaceText = function (node, textNode) {
     var actorSpoiler = false;
     var directorSpoiler = false;
     var text = textNode.textContent;// node.data 를 textContent로 바꿈
-    var fuseContainer;
     var isSpoiler = false;
     if (text.indexOf("http") == 0)
         return false;
@@ -36,16 +23,17 @@ shouldReplaceText = function (node, textNode) {
         return false;
     text = text.replaceAll("\n", " ");
     var replacedText = text;
-    
     //console.log(replacedText);
     //console.log(node);
     //there is no letter or number in the text
     for (let movie of movieData) {
         //keyword exact math
         //title
-        if (replacedText.indexOf(movie.title) != -1)
-            titleSpoiler = true;
-        replacedText = replacedText.replaceAll(movie.title, "타이틀")
+        for (let title of movie.title) {
+            if (replacedText.indexOf(title) != -1)
+                titleSpoiler=true;
+            replacedText = replacedText.replaceAll(title, "타이틀")
+        }
         //actor
         for (let actor of movie.actor) {
             if (replacedText.indexOf(actor) != -1)
@@ -57,56 +45,7 @@ shouldReplaceText = function (node, textNode) {
                 directorSpoiler = true;
             replacedText = replacedText.replaceAll(director, "감독")
         }
-        //fuzzy search
-        //title
-        var match
-        match,replacedText=findAndReplaceByFuzzy(replacedText,movie.title,"타이틀")
-        titleSpoiler=titleSpoiler||match;
-        /*
-        fuse = new Fuse([replacedText], fuseOptions);
-        while(true){
-            fuseContainer = fuse.search(movie.title);
-            if (fuseContainer.length > 0) {
-                titleSpoiler = true;
-                replacedText = replaceFuse(replacedText, fuseContainer, "타이틀");
-            }
-            else
-                break;
-        }*/
-        //actor
 
-        for (let actor of movie.actor) {
-            match, replacedText = findAndReplaceByFuzzy(replacedText, actor, "배우")
-            actorSpoiler = actorSpoiler || match;
-            /*
-            fuse = new Fuse([replacedText], fuseOptions);
-            while (true) {
-                fuseContainer = fuse.search(actor);
-                if (fuseContainer.length > 0) {
-                    actorSpoiler = true;
-                    replacedText = replaceFuse(replacedText, fuseContainer, "배우")
-                }
-                else
-                    break;
-            }*/
-        }
-
-        for (let director of movie.director) {
-            match, replacedText = findAndReplaceByFuzzy(replacedText, director, "감독")
-            directorSpoiler = directorSpoiler || match;
-            /*
-            while (true) {
-                fuse = new Fuse([replacedText], fuseOptions);
-                fuseContainer = fuse.search(director);
-                if (fuseContainer.length > 0) {
-                    directorSpoiler = true;
-                    replacedText = replaceFuse(replacedText, fuseContainer, "감독")
-                }
-                else
-                    break;
-            }
-            */
-        }
     }
     switch (level) {
         case 1:
@@ -114,7 +53,6 @@ shouldReplaceText = function (node, textNode) {
                 if (replacedText == "타이틀" || replacedText == "감독" || replacedText == "배우")
                     break;
                 nodeMap.set(nodeCount, node);
-
                 chrome.runtime.sendMessage({
                     message: 'nlpCheck',
                     data: replacedText,
@@ -137,41 +75,6 @@ shouldReplaceText = function (node, textNode) {
 
     }
     return isSpoiler;
-}
-
-findAndReplaceByFuzzy = function (text, key, type) {
-    match = false;
-    fuse = new Fuse([text], fuseOptions);
-    fuseContainer = fuse.search(key);
-    if (fuseContainer.length > 0) {
-        match = true;
-        text = replaceFuse(text, fuseContainer, type);
-    }
-    return match, text;
-}
-
-replaceFuse = function (text, fuseContainer, type) {
-    console.log(text);
-    //console.log(fuseContainer);
-    var indices = fuseContainer[0].matches[0].indices[0];
-
-
-    for (fuse of fuseContainer) {
-        var matchString = "["
-        for (i of fuse.matches[0].indices) {
-            //console.log(i[0] + " " + i[1])
-            matchString += text.substring(i[0], i[1])
-        }
-        matchString += "]"
-        console.log(matchString)
-    }
-
-
-    
-    //console.log("[" + text.substring(indices[0], indices[1]) + "]")
-    //text = text.substring(0, indices[0] + 1) + type + text.substring(indices[1]);
-    //console.log(text);
-    return text;
 }
 
 spoCheck = function (node) {

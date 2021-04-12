@@ -142,28 +142,38 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 });
 
 function trimRole(newData) {
+    console.log(newData)
     let movie = newData[newData.length - 1];
+    //title
+    let titles = [];
+    insertKeyword(titles, movie.title);
+    titles.push(movie.title.split(/ |:/)[0]);
+    titles.sort((a, b) => { return b.length - a.length });
+    console.log(titles);
+    movie.title=titles;
+    //actor
     let actors = [];
     for (let a of movie.actor.slice(0, actorNum)) {
-        actors.push(a[0]);
+        insertKeyword(actors, a[0]);
         for (let role of a[1]) {
             if (!wordExist(role) && isNaN(role)) {
-                actors.push(role);
+                insertKeyword(actors, role);
+                let splitted = role.split(" ");
+                if (splitted.length > 1&&!wordExist(splitted[0]) && isNaN(splitted[0]))
+                    actors.push(splitted[0]);
             }
         }
     }
     actors.sort((a, b) => { return b.length - a.length });
     console.log(actors);
     movie.actor = actors;
-
-   console.log(newData);
     return newData;
 }
 
-function insertActor(list, actor) {
-    list.push(actor);
-    let trimmed = actor.replaceAll(" ", "");
-    if (trimmed != actor)
+function insertKeyword(list, keyword) {
+    list.push(keyword);
+    let trimmed = keyword.replaceAll(" ", "");
+    if (trimmed != keyword)
         list.push(trimmed);
 }
 

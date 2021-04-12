@@ -236,7 +236,7 @@ class Main extends Component {
                                             </IconButton>
                                             <div className={classes.text}>
                                                 <div className={classes.width100}>
-                                                    <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
+                                                    <p class={classes.titleText}>{(row.title[0].length < 14) ? row.title[0] : row.title[0].substring(0, 14) + "..."}</p>
                                                     <p class={classes.yearText}>{row.prodYear}</p>
                                                 </div>
 
