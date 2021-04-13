@@ -114,6 +114,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
         let result;
+        console.log(request.data);
         if (nlpCheckMap.has(request.data))
             result = nlpCheckMap.get(request.data);
         else{

@@ -10,11 +10,11 @@ String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
 }
 
-shouldReplaceText = function (node, textNode) {
+shouldReplaceText = function (list) {
     var titleSpoiler = false;
     var actorSpoiler = false;
     var directorSpoiler = false;
-    var text = textNode.textContent;// node.data 를 textContent로 바꿈
+    var text = combineListStr(list);// node.data 를 textContent로 바꿈
     var isSpoiler = false;
     if (text.indexOf("http") == 0)
         return false;
@@ -25,6 +25,8 @@ shouldReplaceText = function (node, textNode) {
     var replacedText = text;
     //console.log(replacedText);
     //console.log(node);
+    console.log(text);
+    //console.log(list)
     //there is no letter or number in the text
     for (let movie of movieData) {
         //keyword exact math
@@ -50,9 +52,8 @@ shouldReplaceText = function (node, textNode) {
     switch (level) {
         case 1:
             if (actorSpoiler || titleSpoiler || directorSpoiler) {
-                if (replacedText == "타이틀" || replacedText == "감독" || replacedText == "배우")
-                    break;
-                nodeMap.set(nodeCount, node);
+                nodeMap.set(nodeCount, list);
+                //console.log(text)
                 chrome.runtime.sendMessage({
                     message: 'nlpCheck',
                     data: replacedText,
@@ -78,135 +79,61 @@ shouldReplaceText = function (node, textNode) {
 }
 
 spoCheck = function (node) {
+    let fontSize=-1;
+    let allText=true;
     if (movieData.length <= 0)
-        return false;
-    let textContent=node.textContent;
+        return 0;
     //NOTE: when loading, the first time the node is null when we call this from browser.tabs.onUpdated.addListener
-    if (!node||textContent=="") {
-        return false;
+    if (!node) {
+        return 0;
+    }
+    if (node.nodeName.toLowerCase() === "#text") {
+        fontSize= window.getComputedStyle(node.parentElement).fontSize;
+        //console.log(node.textContent+" "+fontSize);
     }
     if (replaceDivIsEnabled(node, node.nodeName)) {
-        var childCount = 0;
-        var childRealCount = 0;
-        var tempTag = "";                   //같은 태그의 형제들을 가지고있는지 확인하기 위한 임시 변수
-        var checkPlural = false;            //노드 자식들의 복수인지 아닌지 체크하기위한 변수
-        var checkChildWithText = false;     //노드 자식들이 text노드 포함되어있는지 확인, checktext로 반환된 값을 상위로 올려줌
-        var checkText = false;              //text노드인지 확인
-        var checkIfDivided = false;         //분할되었는지 확인
-        var wrapper = document.createElement("div");
-        var checkRemoveChild = false;
-        var toLowerchildClassName ;
+        let childList=[];
         for (let child of node.childNodes) {
-            childRealCount++;
-            var toLowerchildNodeName = child.nodeName.toLowerCase();
-            //NOTE: sometimes the nodename is lowercase
-            if (child === undefined)
-                continue;
-            if (toLowerchildNodeName == "#comment")
-                continue;       
-            childCount++;
-            if (child.className != null && typeof child.className==String)
-                toLowerchildClassName = child.className.toLowerCase();
-            else
-                toLowerchildClassName = "";
-            if (childCount == 1) {
-                tempTag = toLowerchildClassName;
-                checkPlural = true;
-            } else {
-                if (tempTag != toLowerchildClassName && toLowerchildNodeName != "#text" && tempTag != "#text")             
-                    checkPlural = false;
-                if (toLowerchildNodeName != "#text")
-                    tempTag = toLowerchildClassName;
-            }
-            if ((toLowerchildNodeName === "#text" && child.textContent.replace(/(\s*)/g, "") != "") || toLowerchildNodeName === "a" || toLowerchildNodeName === "br") {
-                checkText = true;
-                
-                var oldNode = child.cloneNode(false);
-                if (toLowerchildNodeName === "a" && child.title == child.textContent) 
-                    oldNode =document.createTextNode(child.textContent)
-                wrapper.appendChild(oldNode);
-                
-                if (childRealCount == node.childNodes.length && childCount != 1) {
-
-                    wrapper.normalize();
-                    checkText = false;
-                    if (wrapper.textContent.replace(/(\s*)/g,"") != "") {
-                        //console.log("_________");
-                        //console.log(wrapper.textContent);
-                        shouldReplaceText(node,wrapper);
-                        wrapper = document.createElement("div");
-                        /*if (replace)
-                            blurBlock(child);*/
+            //1
+            let childFontSize=spoCheck(child);
+            if(fontSize!=childFontSize||childFontSize==0){
+                //2
+                if(fontSize!=-1)//init
+                    allText=false;
+                let replace = shouldReplaceText(childList);
+                if (replace){
+                    for(spoChild of childlist){
+                        blurBlock(spoChild);
                     }
                 }
-            } else {
-                //NOTE: we don't call it on the created div
-                if (spoCheck(child))
-                    checkChildWithText = true;
+                //new list
+                fontSize=childFontSize;
+                childList=[];
+                if(childFontSize==0)
+                    allText=false;
+                else
+                    childList.push(child);
             }
-            
+            else{
+                fontSize=childFontSize;
+                childList.push(child);
+            }
         }
-        if (checkPlural && checkChildWithText) {
-            
-            for (let child of node.childNodes) {
-                if (node.childNodes.length == 1)
-                    continue;
-                if (child === undefined)
-                    continue;
-                if (child.nodeName.toLowerCase() == "#comment")
-                    continue;
-                var textWithoutSpace = child.textContent.replace(/(\s*)/g, "");
-                if (textWithoutSpace.length > 500)
-                    return checkText;
-
-                var oldNode = child.cloneNode(true);
-                wrapper.appendChild(oldNode);
-                var spaceNode = document.createTextNode(' ');
-                if ((textWithoutSpace == "" || textWithoutSpace.length == 1) || (wrapper.textContent.length > 100)) {
-                    if (wrapper.textContent.length > 100) {
-                        if (node.childNodes.length != 1) {
-                            wrapper.removeChild(oldNode);
-                            checkRemoveChild = true;
-                        }
-                    }
-                    if (wrapper.textContent.replace(/(\s*)/g, "").length > 1) {
-                        checkIfDivided = true;
-                        
-                        //console.log("2_________");
-                        //console.log(child);
-                        //console.log(child.nodeName);
-                        //console.log(wrapper.textContent);
-                        shouldReplaceText(node, wrapper);
-                        checkText = false;
-                        /*if (replaceDivided)
-                            blurBlock(node);*/
-                    }
-                    wrapper = document.createElement("div");
-                } else {
-                    wrapper.appendChild(spaceNode);
-                }
-                if (checkRemoveChild) {
-                    checkRemoveChild = false;
-                    wrapper.appendChild(oldNode);
-                }
-            }
-            if (!checkIfDivided) {
-                if (childCount > 1) {
-                    if (wrapper.textContent.replace(/(\s*)/g, "") != "") {
-                        //console.log("3_________");
-                        //console.log(node.textContent);
-                        shouldReplaceText(node, node);
-                        checkText = false;
-                        /*if (replaceConcat)
-                            blurBlock(node);*/
-                    }
-                } else {
-                   checkText = true;
-                }
-            }
-        } 
-        return checkText;
     }
+    else{
+        fontSize=0;
+    }
+    if(!allText)
+        fontSize=0;
+    return fontSize;
+}
+
+combineListStr=function(childList){
+    let str=""
+    for(child of childList){
+        str+=child.textContent;
+    }
+    return str;
 }
 
 replaceDivIsEnabled = function (node, nodeName) {
@@ -243,14 +170,11 @@ replaceDivIsEnabled = function (node, nodeName) {
 blurBlock = function (node, text) {
     if (node.parentElement.className=="swal-text")
         return;
-    let elementToReplace = findTargetParent(node);
-    let blurText = "filter:blur(0.6em)";
-    let styleText=elementToReplace.getAttribute("style");
-    if (styleText==null||styleText != blurText) {
-        elementToReplace.style.filter="blur(0.6em)";
-        elementToReplace.spoilerText = text
-        elementToReplace.addEventListener("click", clickEventWrapper, false);
-    }
+    node = findTargetParent(node);
+
+    node.style.filter = "blur(6px)";
+    node.spoilerText = text
+    node.addEventListener("click", clickEventWrapper, false);
 }
 
 clickEventWrapper=function(event){
@@ -401,14 +325,17 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         whiteListChecker = request.onWhiteList;
     }
     if (request.message == 'nlpReply') {
-        let node = nodeMap.get(request.nodeNum);
-        console.log(request.originData);
-        console.log(request.isSpoiler)
-        if (request.isSpoiler && node != undefined) {
-            let nodename = node.nodeName.toLowerCase();
-            //if (nodename == "a" || nodename == "#text")
-            console.log(Date.now() - startTime);
-            blurBlock(node, request.data);
+        let nodeList = nodeMap.get(request.nodeNum);
+        //console.log(request.originData);
+        //console.log(request.isSpoiler);
+        if (request.isSpoiler) {
+            for(node of nodeList){
+                if(node!=undefined){
+                    console.log(Date.now() - startTime);
+                    blurBlock(node, request.data);
+                }
+            }
+
         }
     }
 })
