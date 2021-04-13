@@ -138,6 +138,8 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         });
     }else if(request.message==="report"){
         await report(request.data,request.isSpoiler);
+    }else if(request.message==="setCache"){
+        nlpCheckMap.set(request.data, request.isSpoiler);
     }
 });
 
@@ -318,7 +320,6 @@ async function report(str, isSpoiler) {
 
     let requestUrl = serverUrl + "/report";
     let data = { text: str, isSpoiler: isSpoiler }
-    nlpCheckMap.set(str, isSpoiler);
     await fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

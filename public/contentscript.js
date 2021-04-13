@@ -272,15 +272,22 @@ openBlurred = function (event, node) {
     }).then(
         (value) => {
             if (value) {
+                
+                chrome.runtime.sendMessage({
+                    message: 'setCache',
+                    data: node.spoilerText,
+                    isSpoiler: false
+                });
+                
                 node.style.filter = "";
                 node.removeEventListener("click", clickEventWrapper, false);
-                spoilerPopUp(node.spoilerText);
+                spoilerPopUp(node.textContent,node.spoilerText);
             }
         }
     )
 }
 
-function spoilerPopUp(text) {
+function spoilerPopUp(text,maskedText) {
     swal({
         title: "스포일러가 포함되어 있습니까?",
         text:text,
@@ -301,7 +308,7 @@ function spoilerPopUp(text) {
                 return;
             chrome.runtime.sendMessage({
                 message: 'report',
-                data: text,
+                data: maskedText,
                 isSpoiler: isSpoiler
             });
         }
@@ -401,7 +408,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             let nodename = node.nodeName.toLowerCase();
             //if (nodename == "a" || nodename == "#text")
             console.log(Date.now() - startTime);
-            blurBlock(node, request.originData);
+            blurBlock(node, request.data);
         }
     }
 })
