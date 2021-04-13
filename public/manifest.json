@@ -25,6 +25,7 @@
     "data/wordindex.json"
 ],
 "icons": {
+    "16": "images/contextMenu.png",
     "128": "images/icon_green16.png"
   },
   "permissions": ["storage","tabs","<all_urls>","contextMenus"],

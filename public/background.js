@@ -53,25 +53,29 @@ chrome.tabs.onActivated.addListener(
     }
 
 );
-clickHandler = function(e) {
-    console.log(e);
+clickHandler = function(onclickData,tab) {
+    console.log(onclickData);
+    console.log(tab);
+    chrome.tabs.query({
+        "active": true,
+        "currentWindow": true
+    }, function (tabs) {
+        console.log(tab.id);
+        console.log(tabs[0].id);
+        chrome.tabs.sendMessage(tabs[0].id, {
+            "message": "spoilerReportPopup",
+            "data":onclickData.selectionText
+        });
+    });
 }
 
 chrome.contextMenus.create({
     "title":"스포일러 신고",
-    "contexts":["page", "selection", "image", "link"],
+    "contexts":["selection"],
+    "type":"normal",
     "onclick" : clickHandler
 })
 
-chrome.tabs.onUpdated.addListener(function
-    (tabId, changeInfo, tab) {
-      // read changeInfo data and do something with it (like read the url)
-      if (changeInfo.url) {
-        // do something here
-  
-      }
-    }
-  );
 
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     //console.log('sender');
@@ -132,7 +136,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
                 data: request.data,
                 originData: request.originData
             });
-    }else if(request.message === 'wordExist'){
+    } else if (request.message === 'wordExist') {
         chrome.runtime.sendMessage({
             message: 'wordExistReply',
             exist: wordExist(word),

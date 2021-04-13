@@ -10,6 +10,8 @@ String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
 }
 
+///해당 문장에 영화 키워드가 있는지 확인하고 스포일러 정도에 따라 가려야할지 결정
+///만약 1단계라면 백그라운드에 판별 요청
 shouldReplaceText = function (node,text) {
     var titleSpoiler = false;
     var actorSpoiler = false;
@@ -73,6 +75,29 @@ shouldReplaceText = function (node,text) {
     return isSpoiler;
 }
 
+maskToMovieInfo=function(text){
+    text = text.replaceAll("\n", " ");
+    for (let movie of movieData) {
+        //keyword exact match
+        //title
+        for (let title of movie.title) {
+            text = text.replaceAll(title, "타이틀")
+        }
+        //actor
+        for (let actor of movie.actor) {
+            text = text.replaceAll(actor, "배우")
+        }
+        //director
+        for (let director of movie.director) {
+            text = text.replaceAll(director, "감독")
+        }
+
+    }
+    return text;
+}
+
+///각 돔오브젝트에 대해 재귀적으로 내려가며 가려야할지 판단
+///문장 범위 판단
 spoCheck = function (node) {
     let fontSize=-1;
     let allText=true;
@@ -140,6 +165,7 @@ spoCheck = function (node) {
     return fontSize;
 }
 
+///돔오브젝트 리스트의 텍스트를 합침
 combineListStr=function(childList){
     let str=""
     for(child of childList){
@@ -148,6 +174,7 @@ combineListStr=function(childList){
     return str;
 }
 
+///???
 replaceDivIsEnabled = function (node, nodeName) {
 
     if ((nodeName == "#text") && (node.textContent.replaceAll('↵', "").trim().length == 0)) {
@@ -179,6 +206,7 @@ replaceDivIsEnabled = function (node, nodeName) {
     }
 }
 
+///node를 블러처리함
 blurBlock = function (node) {
     if (node.parentElement.className=="swal-text")
         return;
@@ -195,6 +223,7 @@ clickEventWrapper=function(event){
     openBlurred(event, event.currentTarget);
 }
 
+///블러 해제할지 팝업창
 openBlurred = function (event, node) {
     event.preventDefault();
     event.stopPropagation();
@@ -225,6 +254,9 @@ openBlurred = function (event, node) {
     )
 }
 
+///스포일러가 포함되어있는지 팝업창으로 물어봄
+///text는 보여질 데이터
+///maskedText는 서버에 전송할 데이터
 function spoilerPopUp(text,maskedText) {
     swal({
         title: "스포일러가 포함되어 있습니까?",
@@ -253,6 +285,7 @@ function spoilerPopUp(text,maskedText) {
     )
 }
 
+///start를 가려야할때 적절히 가릴 상위의 노드를 찾음
 findTargetParent = function (start) {
     let cur = start;
     /*while (cur.parentElement != undefined) {
@@ -280,6 +313,7 @@ findTargetParent = function (start) {
     return result;
 }
 
+///반응형에 대응하기 위해 돔 오브젝트 바뀌면 스포일러 체크하도록 이벤트 추가함
 AttachBlockObserver = function () {
     if(attachObserver)
         return;
@@ -352,13 +386,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
         }
     }
+    if (request.message == 'spoilerReportPopup') {
+        console.log(request.data);
+        spoilerPopUp(request.data,maskToMovieInfo(request.data));
+    }
 })
 
+///백그라운드에 영화 데이터 요청
 chrome.runtime.sendMessage({
     message: 'getMovieData',
     node:document.body
 });
 
+///백그라운드에 화이트리스트 데이터 요청
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
 });
