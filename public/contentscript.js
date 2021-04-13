@@ -10,11 +10,10 @@ String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
 }
 
-shouldReplaceText = function (list) {
+shouldReplaceText = function (node,text) {
     var titleSpoiler = false;
     var actorSpoiler = false;
     var directorSpoiler = false;
-    var text = combineListStr(list);// node.data 를 textContent로 바꿈
     var isSpoiler = false;
     if (text.indexOf("http") == 0)
         return false;
@@ -23,10 +22,6 @@ shouldReplaceText = function (list) {
         return false;
     text = text.replaceAll("\n", " ");
     var replacedText = text;
-    //console.log(replacedText);
-    //console.log(node);
-    console.log(text);
-    //console.log(list)
     //there is no letter or number in the text
     for (let movie of movieData) {
         //keyword exact math
@@ -52,7 +47,7 @@ shouldReplaceText = function (list) {
     switch (level) {
         case 1:
             if (actorSpoiler || titleSpoiler || directorSpoiler) {
-                nodeMap.set(nodeCount, list);
+                nodeMap.set(nodeCount, node);
                 //console.log(text)
                 chrome.runtime.sendMessage({
                     message: 'nlpCheck',
@@ -88,42 +83,59 @@ spoCheck = function (node) {
         return 0;
     }
     if (node.nodeName.toLowerCase() === "#text") {
-        fontSize= window.getComputedStyle(node.parentElement).fontSize;
+        let text = node.textContent;
+        text = text.replace(/\u200B/g, '');
+        if (text.length==0)
+            fontSize = 0;
+        else
+            fontSize = window.getComputedStyle(node.parentElement).fontSize;
         //console.log(node.textContent+" "+fontSize);
     }
     if (replaceDivIsEnabled(node, node.nodeName)) {
-        let childList=[];
+        let childList = [];
         for (let child of node.childNodes) {
+            //console.log(child);
+            if (child.nodeName == "#comment")
+                continue;
             //1
-            let childFontSize=spoCheck(child);
+            let childFontSize = spoCheck(child);
+            //console.log(child.textContent+" "+childFontSize+" "+child.nodeName);
             if(fontSize!=childFontSize||childFontSize==0){
                 //2
                 if(fontSize!=-1)//init
                     allText=false;
-                let replace = shouldReplaceText(childList);
+                let replace = shouldReplaceText(node,combineListStr(childList));
                 if (replace){
                     for(spoChild of childlist){
                         blurBlock(spoChild);
                     }
                 }
                 //new list
-                fontSize=childFontSize;
-                childList=[];
-                if(childFontSize==0)
-                    allText=false;
+                fontSize = childFontSize;
+                childList = [];
+                if (childFontSize == 0)
+                    allText = false;
                 else
                     childList.push(child);
             }
-            else{
-                fontSize=childFontSize;
+            else {
+                fontSize = childFontSize;
                 childList.push(child);
             }
         }
+        if(!allText){
+            let replace = shouldReplaceText(node, combineListStr(childList));
+            if (replace) {
+                for (spoChild of childlist) {
+                    blurBlock(spoChild);
+                }
+            }
+        }
     }
-    else{
-        fontSize=0;
+    else {
+        fontSize = 0;
     }
-    if(!allText)
+    if (!allText)
         fontSize=0;
     return fontSize;
 }
@@ -131,7 +143,7 @@ spoCheck = function (node) {
 combineListStr=function(childList){
     let str=""
     for(child of childList){
-        str+=child.textContent;
+        str+=child.textContent+" ";
     }
     return str;
 }
@@ -167,14 +179,16 @@ replaceDivIsEnabled = function (node, nodeName) {
     }
 }
 
-blurBlock = function (node, text) {
+blurBlock = function (node) {
     if (node.parentElement.className=="swal-text")
         return;
     node = findTargetParent(node);
-
-    node.style.filter = "blur(6px)";
-    node.spoilerText = text
-    node.addEventListener("click", clickEventWrapper, false);
+    let blurText = "blur(6px)";
+    if(node.isBlurred==undefined){
+        node.isBlurred=true;
+        node.style.filter = blurText;
+        node.addEventListener("click", clickEventWrapper, false);
+    }
 }
 
 clickEventWrapper=function(event){
@@ -205,7 +219,7 @@ openBlurred = function (event, node) {
                 
                 node.style.filter = "";
                 node.removeEventListener("click", clickEventWrapper, false);
-                spoilerPopUp(node.textContent,node.spoilerText);
+                spoilerPopUp(node.originData,node.spoilerText);
             }
         }
     )
@@ -325,15 +339,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         whiteListChecker = request.onWhiteList;
     }
     if (request.message == 'nlpReply') {
-        let nodeList = nodeMap.get(request.nodeNum);
+        let node = nodeMap.get(request.nodeNum);
         //console.log(request.originData);
         //console.log(request.isSpoiler);
         if (request.isSpoiler) {
-            for(node of nodeList){
-                if(node!=undefined){
-                    console.log(Date.now() - startTime);
-                    blurBlock(node, request.data);
-                }
+            if (node != undefined) {
+                console.log(Date.now() - startTime);
+                node.originData=request.originData;
+                node.spoilerText=request.data;
+                blurBlock(node);
             }
 
         }
