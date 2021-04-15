@@ -216,6 +216,8 @@ blurBlock = function (node) {
     if (node.parentElement.className=="swal-text")
         return;
     node = findTargetParent(node);
+    node.originData=request.originData;
+    node.spoilerText=request.data;
     let blurText = "blur(6px)";
     if(node.isBlurred==undefined){
         node.isBlurred=true;
@@ -377,8 +379,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (request.isSpoiler) {
             if (node != undefined) {
                 console.log(Date.now() - startTime);
-                node.originData=request.originData;
-                node.spoilerText=request.data;
                 blurBlock(node);
             }
 

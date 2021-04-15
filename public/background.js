@@ -54,19 +54,13 @@ chrome.tabs.onActivated.addListener(
     }
 
 );
-clickHandler = function(onclickData,tab) {
+clickHandler = function (onclickData, tab) {
     console.log(onclickData);
     console.log(tab);
-    chrome.tabs.query({
-        "active": true,
-        "currentWindow": true
-    }, function (tabs) {
-        console.log(tab.id);
-        console.log(tabs[0].id);
-        chrome.tabs.sendMessage(tabs[0].id, {
-            "message": "spoilerReportPopup",
-            "data":onclickData.selectionText
-        });
+
+    chrome.tabs.sendMessage(tab.id, {
+        "message": "spoilerReportPopup",
+        "data": onclickData.selectionText
     });
 }
 
@@ -118,6 +112,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
+        console.log(request.originData)
         let result;
         if (nlpCheckMap.has(request.data))
             result = nlpCheckMap.get(request.data);
@@ -163,12 +158,13 @@ function trimRole(newData) {
     //actor
     let actors = [];
     for (let a of movie.actor.slice(0, actorNum)) {
+        console.log(a);
         insertKeyword(actors, a[0]);
         for (let role of a[1]) {
-            if (!wordExist(role)) {
+            if (!wordExist(role)&&role.length>1) {
                 insertKeyword(actors, role);
                 let splitted = role.split(" ");
-                if (splitted.length > 1&&!wordExist(splitted[0]))
+                if (splitted.length > 1&&!wordExist(splitted[0])&&splitted[0].length>1)
                     actors.push(splitted[0]);
             }
         }
