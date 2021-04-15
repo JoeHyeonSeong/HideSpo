@@ -5,6 +5,7 @@ let movieData;
 let blockPower;
 let serverUrl="http://158.247.209.101:5000";
 let nlpCheckMap=new Map();
+let nlpCheckSendSet=new Set();
 
 try {
     chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower'],
@@ -118,16 +119,17 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
         let result;
-        console.log(request.data);
         if (nlpCheckMap.has(request.data))
             result = nlpCheckMap.get(request.data);
         else{
+            if(nlpCheckSendSet.has(request.data))
+                return;
+            nlpCheckSendSet.add(request.data);
             result = await spoilerCheck(request.data);
             nlpCheckMap.set(request.data, result);
         }
-        //console.log(request.data)
-        //console.log(result)
-        console.log(result);
+        console.log(request.data)
+        console.log(result)
         chrome.tabs.sendMessage(sender.tab.id,
             {
                 message: 'nlpReply',

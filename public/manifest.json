@@ -1,6 +1,6 @@
 {
   "name": "스포노노",
-  "version": "0.0.0.3",
+  "version": "1.0.0.0",
   "description": "영화 스포일러 차단",
   "manifest_version": 2,
   "browser_action": {

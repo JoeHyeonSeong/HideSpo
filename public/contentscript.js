@@ -1,6 +1,5 @@
 var movieData;
 var level = -1;
-var movieDataLength = -1;
 var whiteListChecker;
 var nodeMap = new Map();
 var nodeCount = 0;
@@ -110,10 +109,16 @@ spoCheck = function (node) {
     if (node.nodeName.toLowerCase() === "#text") {
         let text = node.textContent;
         text = text.replace(/\u200B/g, '');
-        if (text.length==0)
+        if (text.length == 0)
             fontSize = 0;
-        else
-            fontSize = window.getComputedStyle(node.parentElement).fontSize;
+        else{
+            try {
+                fontSize = window.getComputedStyle(node.parentElement).fontSize;
+            }
+            catch {
+                fontSize = 0;
+            }
+        }
         //console.log(node.textContent+" "+fontSize);
     }
     if (replaceDivIsEnabled(node, node.nodeName)) {
@@ -288,7 +293,7 @@ function spoilerPopUp(text,maskedText) {
 ///start를 가려야할때 적절히 가릴 상위의 노드를 찾음
 findTargetParent = function (start) {
     let cur = start;
-    /*while (cur.parentElement != undefined) {
+    while (cur.parentElement != undefined) {
         if(cur.style&&cur.style.position=="absolute")
             return cur;
         let parentNode = cur.parentElement
@@ -299,13 +304,13 @@ findTargetParent = function (start) {
             if (n != cur &&
                 n.className == cur.className &&
                 n.nodeName == cur.nodeName &&
-                n.id == cur.id &&
-                n.childNodes.length > 0) {
+                //n.id == cur.id &&
+                n.childNodes.length==cur.childNodes.length) {
                 return cur;
             }
         }
         cur = parentNode;
-    }*/
+    }
 
     let result= start;
     if(result.nodeName=="#text")
@@ -352,13 +357,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         }
         */
         level = request.blockPower;
-        if (request.onWhiteList == false || (request.onWhiteList == undefined && whiteListChecker == false)) {
-
-            if (movieDataLength < movieData.length) {
-                AttachBlockObserver();
-            }
-        }
-        movieDataLength = movieData.length;
     }
 
     if (request.message === "whiteList") {
@@ -387,7 +385,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         }
     }
     if (request.message == 'spoilerReportPopup') {
-        console.log(request.data);
         spoilerPopUp(request.data,maskToMovieInfo(request.data));
     }
 })
