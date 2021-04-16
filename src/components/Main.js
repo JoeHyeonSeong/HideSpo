@@ -162,7 +162,6 @@ class Main extends Component {
     render() {
         const { classes } = this.props;
         let tableText = (this.state.movieDatas.length > 0) ? "" : "추가된 영화 없음";
-        console.log(this.movieData);
         return (
 
             <ThemeProvider theme={theme}>

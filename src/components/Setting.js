@@ -52,6 +52,7 @@ class Setting extends Component {
         this.setState({
             blockPower: newValue
         })
+        console.log(newValue);
         chrome.runtime.sendMessage({
             message: 'blockPowerChange',
             blockPower: newValue

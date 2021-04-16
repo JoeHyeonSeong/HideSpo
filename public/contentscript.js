@@ -1,5 +1,5 @@
 var movieData;
-var level = -1;
+var blockPower = -1;
 var whiteListChecker;
 var nodeMap = new Map();
 var nodeCount = 0;
@@ -45,8 +45,8 @@ shouldReplaceText = function (node,text) {
         }
 
     }
-    switch (level) {
-        case 1:
+    switch (blockPower) {
+        case '1':
             if (actorSpoiler || titleSpoiler || directorSpoiler) {
                 nodeMap.set(nodeCount, node);
                 //console.log(text)
@@ -59,19 +59,20 @@ shouldReplaceText = function (node,text) {
                 nodeCount++;
                 break;
             }
-        case 2:
-            if (titleSpoiler)
+        case '2':
+            if (titleSpoiler){
                 isSpoiler = true;
+            }
             break;
 
-        case 3:
+        case '3':
             if (actorSpoiler || directorSpoiler||titleSpoiler)
                 isSpoiler = true;
         default:
             break;
 
     }
-    return isSpoiler,replacedText;
+    return [isSpoiler, replacedText];
 }
 
 maskToMovieInfo=function(text){
@@ -134,9 +135,9 @@ spoCheck = function (node) {
                 //2
                 if(fontSize!=-1)//init
                     allText=false;
-                let replace,replacedText = shouldReplaceText(node,combineListStr(childList));
-                if (replace){
-                        blurBlock(node,text,replacedText);
+                let replace= shouldReplaceText(node,combineListStr(childList));
+                if (replace[0]){
+                        blurBlock(node,text,replace[1]);
                 }
                 //new list
                 fontSize = childFontSize;
@@ -152,9 +153,9 @@ spoCheck = function (node) {
             }
         }
         if(!allText){
-            let replace,replacedText = shouldReplaceText(node, combineListStr(childList));
-            if (replace) {
-                blurBlock(node,text,replacedText);
+            let replace = shouldReplaceText(node, combineListStr(childList));
+            if (replace[0]) {
+                blurBlock(node,text,replace[1]);
             }
         }
     }
@@ -212,7 +213,6 @@ blurBlock = function (node,originalText,maskedText) {
     if (node.parentElement.className=="swal-text")
         return;
     node = findTargetParent(node);
-    console.log("blur!");
     node.originData=originalText;
     node.spoilerText=maskedText;
     let blurText = "blur(6px)";
@@ -355,7 +355,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             window.location.reload();
         }
         */
-        level = request.blockPower;
+        blockPower = request.blockPower;
     }
 
     if (request.message === "whiteList") {
