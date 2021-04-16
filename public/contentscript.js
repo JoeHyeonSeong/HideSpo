@@ -4,6 +4,7 @@ var whiteListChecker;
 var nodeMap = new Map();
 var nodeCount = 0;
 let attachObserver=false;
+let cutLen=70;
 
 String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
@@ -262,6 +263,8 @@ openBlurred = function (event, node) {
 ///text는 보여질 데이터
 ///maskedText는 서버에 전송할 데이터
 function spoilerPopUp(text,maskedText) {
+    if(text.length>cutLen)
+        text=text.substring(0,cutLen)+"...";
     swal({
         title: "스포일러가 포함되어 있습니까?",
         text:text,
@@ -375,7 +378,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         //console.log(request.isSpoiler);
         if (request.isSpoiler) {
             if (node != undefined) {
-                //console.log(Date.now() - startTime);
+                console.log(Date.now() - startTime);
                 blurBlock(node,request.originData,request.data);
             }
 
