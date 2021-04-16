@@ -31,7 +31,7 @@ const styles = {
 
 class Setting extends Component {
     state = {
-        blockPower: 1
+        blockPower: "1"
     }
     blockPowerText = [
         '차단 안 함',
@@ -43,25 +43,27 @@ class Setting extends Component {
     componentDidUpdate(prevProps, prevState) {
         if (prevProps.open != this.props.open && this.props.open) {
             this.setState({
-                blockPower:this.props.blockPower
+                blockPower:String(this.props.blockPower)
             });
         }
     }
 
     handleBlockPowerChange = (event, newValue) => {
         this.setState({
-            blockPower: newValue
+            blockPower: String(newValue)
         })
         console.log(newValue);
         chrome.runtime.sendMessage({
             message: 'blockPowerChange',
-            blockPower: newValue
+            blockPower: String(newValue)
         });
     }
 
     render() {
         const name = 'react';
         const { classes } = this.props;
+        console.log(this.state.blockPower);
+        console.log(typeof this.state.blockPower);
         return (
             <Dialog onClose={this.props.onClose} open={this.props.open}>
                 <List className={classes.root}>

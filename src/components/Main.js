@@ -129,7 +129,7 @@ class Main extends Component {
         settingOpen:false,
         movieDatas: [],
         onWhiteList: false,
-        blockPower:1
+        blockPower:"1"
     }
     searchTitle = '';
     bodyText = '';
