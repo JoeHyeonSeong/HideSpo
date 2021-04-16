@@ -71,7 +71,7 @@ shouldReplaceText = function (node,text) {
             break;
 
     }
-    return isSpoiler;
+    return isSpoiler,replacedText;
 }
 
 maskToMovieInfo=function(text){
@@ -100,6 +100,7 @@ maskToMovieInfo=function(text){
 spoCheck = function (node) {
     let fontSize=-1;
     let allText=true;
+    let text=node.textContent;
     if (movieData.length <= 0)
         return 0;
     //NOTE: when loading, the first time the node is null when we call this from browser.tabs.onUpdated.addListener
@@ -107,7 +108,6 @@ spoCheck = function (node) {
         return 0;
     }
     if (node.nodeName.toLowerCase() === "#text") {
-        let text = node.textContent;
         text = text.replace(/\u200B/g, '');
         if (text.length == 0)
             fontSize = 0;
@@ -134,11 +134,9 @@ spoCheck = function (node) {
                 //2
                 if(fontSize!=-1)//init
                     allText=false;
-                let replace = shouldReplaceText(node,combineListStr(childList));
+                let replace,replacedText = shouldReplaceText(node,combineListStr(childList));
                 if (replace){
-                    for(spoChild of childlist){
-                        blurBlock(spoChild);
-                    }
+                        blurBlock(node,text,replacedText);
                 }
                 //new list
                 fontSize = childFontSize;
@@ -154,11 +152,9 @@ spoCheck = function (node) {
             }
         }
         if(!allText){
-            let replace = shouldReplaceText(node, combineListStr(childList));
+            let replace,replacedText = shouldReplaceText(node, combineListStr(childList));
             if (replace) {
-                for (spoChild of childlist) {
-                    blurBlock(spoChild);
-                }
+                blurBlock(node,text,replacedText);
             }
         }
     }
@@ -212,12 +208,13 @@ replaceDivIsEnabled = function (node, nodeName) {
 }
 
 ///node를 블러처리함
-blurBlock = function (node) {
+blurBlock = function (node,originalText,maskedText) {
     if (node.parentElement.className=="swal-text")
         return;
     node = findTargetParent(node);
-    node.originData=request.originData;
-    node.spoilerText=request.data;
+    console.log("blur!");
+    node.originData=originalText;
+    node.spoilerText=maskedText;
     let blurText = "blur(6px)";
     if(node.isBlurred==undefined){
         node.isBlurred=true;
@@ -379,7 +376,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (request.isSpoiler) {
             if (node != undefined) {
                 console.log(Date.now() - startTime);
-                blurBlock(node);
+                blurBlock(node,request.originData,request.data);
             }
 
         }
