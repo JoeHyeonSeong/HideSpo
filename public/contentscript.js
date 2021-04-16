@@ -23,6 +23,8 @@ shouldReplaceText = function (node,text) {
     if (text.length == 0)
         return false;
     text = text.replaceAll("\n", " ");
+    console.log(node);
+    console.log(text);
     var replacedText = text;
     //there is no letter or number in the text
     for (let movie of movieData) {
@@ -103,12 +105,21 @@ spoCheck = function (node) {
     let fontSize=-1;
     let allText=true;
     let text=node.textContent;
+    let borderWidth = "0px";
     if (movieData.length <= 0)
         return 0;
     //NOTE: when loading, the first time the node is null when we call this from browser.tabs.onUpdated.addListener
     if (!node) {
         return 0;
     }
+    //borderWidth구하기
+    try {
+        childStyle = window.getComputedStyle(node);
+        borderWidth = childStyle.getPropertyValue('border-width');
+    } catch { }
+    if(borderWidth!="0px")
+        fontSize=0;
+        
     if (node.nodeName.toLowerCase() === "#text") {
         text = text.replace(/\u200B/g, '');
         if (text.length == 0)
@@ -129,12 +140,13 @@ spoCheck = function (node) {
             //console.log(child);
             if (child.nodeName == "#comment")
                 continue;
+
             //1
             let childFontSize = spoCheck(child);
-            //console.log(child.textContent+" "+childFontSize+" "+child.nodeName);
-            if(fontSize!=childFontSize||childFontSize==0){
+            //묶는거 멈추기
+            if (fontSize != childFontSize || childFontSize == 0) {
                 //2
-                if(fontSize!=-1)//init
+                if (fontSize != -1)//fontSize가 초기값이 아님
                     allText=false;
                 let replace= shouldReplaceText(node,combineListStr(childList));
                 if (replace[0]){
@@ -147,7 +159,7 @@ spoCheck = function (node) {
                     allText = false;
                 else
                     childList.push(child);
-            }
+            }//추가
             else {
                 fontSize = childFontSize;
                 childList.push(child);
@@ -378,7 +390,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         //console.log(request.isSpoiler);
         if (request.isSpoiler) {
             if (node != undefined) {
-                console.log(Date.now() - startTime);
+                //console.log(Date.now() - startTime);
                 blurBlock(node,request.originData,request.data);
             }
 
