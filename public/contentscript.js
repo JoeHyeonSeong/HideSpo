@@ -375,7 +375,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         //console.log(request.isSpoiler);
         if (request.isSpoiler) {
             if (node != undefined) {
-                console.log(Date.now() - startTime);
+                //console.log(Date.now() - startTime);
                 blurBlock(node,request.originData,request.data);
             }
 
