@@ -23,8 +23,6 @@ shouldReplaceText = function (node,text) {
     if (text.length == 0)
         return false;
     text = text.replaceAll("\n", " ");
-    console.log(node);
-    console.log(text);
     var replacedText = text;
     //there is no letter or number in the text
     for (let movie of movieData) {
@@ -119,7 +117,7 @@ spoCheck = function (node) {
     } catch { }
     if(borderWidth!="0px")
         fontSize=0;
-        
+
     if (node.nodeName.toLowerCase() === "#text") {
         text = text.replace(/\u200B/g, '');
         if (text.length == 0)
