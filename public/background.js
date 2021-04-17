@@ -112,38 +112,30 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
-        console.log(request.originData)
-        let result;
-        if (nlpCheckMap.has(request.data))
-            result = nlpCheckMap.get(request.data);
-        else{
-            if(nlpCheckSendSet.has(request.data))
-                return;
-            nlpCheckSendSet.add(request.data);
-            result = await spoilerCheck(request.data);
-            nlpCheckMap.set(request.data, result);
-        }
-        console.log(request.data)
-        console.log(result)
-        chrome.tabs.sendMessage(sender.tab.id,
-            {
-                message: 'nlpReply',
-                isSpoiler: result,
-                nodeNum: request.nodeNum,
-                data: request.data,
-                originData: request.originData
-            });
+        spoilerCheck(request,sender.tab.id);
+
     } else if (request.message === 'wordExist') {
         chrome.runtime.sendMessage({
             message: 'wordExistReply',
             exist: wordExist(word),
         });
-    }else if(request.message==="report"){
-        await report(request.data,request.isSpoiler);
-    }else if(request.message==="setCache"){
+    } else if (request.message === "report") {
+        report(request.data, request.isSpoiler);
+    } else if (request.message === "setCache") {
         nlpCheckMap.set(request.data, request.isSpoiler);
     }
 });
+
+function sendNlpReply(tabId, isSpoiler, nodeNum, data, originData) {
+    chrome.tabs.sendMessage(tabId,
+        {
+            message: 'nlpReply',
+            isSpoiler: isSpoiler,
+            nodeNum: nodeNum,
+            data: data,
+            originData: originData
+        });
+}
 
 function trimRole(newData) {
     console.log(newData)
@@ -185,11 +177,8 @@ function insertKeyword(list, keyword) {
 function sendWhiteList_content() {
     
     chrome.tabs.query({ active: true }, function (tabs) {
-        //console.log(tabs)
         for(tab of tabs){
-            //console.log(tab);
             let url=trimUrl(tab.url);
-            //console.log(url);
             chrome.tabs.sendMessage(tab.id,
                 {
                     message: 'whiteList',
@@ -197,23 +186,6 @@ function sendWhiteList_content() {
                 });
             iconCheck(url)
         }
-        /*
-           chrome.tabs.executeScript(
-            { code: "document.domain" },
-            function (results) {
-                chrome.runtime.lastError;
-                console.log(results)
-                if (results == undefined)
-                    return;
-                let url = results[0];
-                chrome.tabs.sendMessage(tabs[0].id,
-                    {
-                        message: 'whiteList',
-                        onWhiteList: isOnWhiteList(url)
-                    });
-                iconCheck(url)
-            });
-            */
     });
 
     
@@ -301,21 +273,29 @@ function isOnWhiteList(url) {
     return false;
 }
 
-async function spoilerCheck(str) {
-    let requestUrl = serverUrl+"/predict"
-    let data={contents:str}
-    let response = await fetch(requestUrl, {
-        method: 'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(data)
-    })
-
-    if (response.ok) {
-        let json = await response.json();
-        return json['output'];
+async function spoilerCheck(request,tabId) {
+    let result;
+    if (nlpCheckMap.has(request.data)) {//캐시에 있음
+        result = nlpCheckMap.get(request.data);
+        sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData)
     }
-    else{
-        return false;//서버 응답 없으면 다 스포 아님
+    else if (!nlpCheckSendSet.has(request.data)){//서버에 이걸 보내지 않았으면 서버에서 호출
+        nlpCheckSendSet.add(request.data);//서버에 보냈다고 체크
+        let requestUrl = serverUrl + "/predict"
+        let data = { contents: request.data }
+
+        fetch(requestUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json())
+        .then(function (response) {
+            let result=response['output'];
+            nlpCheckMap.set(request.data, result);
+            console.log(result);
+            sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);
+        })
+        .catch(error => console.log("server not response..."));
     }
 }
 
@@ -323,7 +303,7 @@ async function report(str, isSpoiler) {
 
     let requestUrl = serverUrl + "/report";
     let data = { text: str, isSpoiler: isSpoiler }
-    await fetch(requestUrl, {
+    fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

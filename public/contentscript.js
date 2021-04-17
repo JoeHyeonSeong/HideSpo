@@ -1,6 +1,5 @@
 var movieData;
 var blockPower = -1;
-var whiteListChecker;
 var nodeMap = new Map();
 var nodeCount = 0;
 let attachObserver=false;
@@ -46,33 +45,30 @@ shouldReplaceText = function (node,text) {
         }
 
     }
-    switch (blockPower) {
-        case '1':
-            if (actorSpoiler || titleSpoiler || directorSpoiler) {
-                nodeMap.set(nodeCount, node);
-                //console.log(text)
-                chrome.runtime.sendMessage({
-                    message: 'nlpCheck',
-                    data: replacedText,
-                    originData: text,
-                    nodeNum:nodeCount
-                });
-                nodeCount++;
-                break;
-            }
-        case '2':
-            if (titleSpoiler){
-                isSpoiler = true;
-            }
-            break;
-
-        case '3':
-            if (actorSpoiler || directorSpoiler||titleSpoiler)
-                isSpoiler = true;
-        default:
-            break;
-
+    if (blockPower == "1") {
+        if (actorSpoiler || titleSpoiler || directorSpoiler) {
+            nodeMap.set(nodeCount, node);
+            chrome.runtime.sendMessage({
+                message: 'nlpCheck',
+                data: replacedText,
+                originData: text,
+                nodeNum: nodeCount
+            });
+            nodeCount++;
+        }
     }
+    else if (blockPower == "2") {
+        if (titleSpoiler) {
+            isSpoiler = true;
+        }
+    }
+    else if (blockPower == "3") {
+        if (actorSpoiler || directorSpoiler || titleSpoiler)
+            isSpoiler = true;
+    }
+
+
+    
     return [isSpoiler, replacedText];
 }
 
@@ -248,7 +244,7 @@ openBlurred = function (event, node) {
         text:"스포일러일 가능성이 있습니다.",
         buttons: {
             yes: { text: "O", value: true },
-            no: { text: "X", value: false }
+            cancelButton: { text: "취소", value: false },
         },
         icon:"warning",
     }).then(
@@ -372,15 +368,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
 
     if (request.message === "whiteList") {
-        if (request.onWhiteList && whiteListChecker == false) {
-            whiteListChecker = request.onWhiteList;
-            window.location.reload();
-        }
-        else if (!request.onWhiteList) {
-            whiteListChecker = true;
+        if (!request.onWhiteList) {
             AttachBlockObserver();
         }
-        whiteListChecker = request.onWhiteList;
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
@@ -388,7 +378,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         //console.log(request.isSpoiler);
         if (request.isSpoiler) {
             if (node != undefined) {
-                //console.log(Date.now() - startTime);
+                console.log(Date.now() - startTime);
                 blurBlock(node,request.originData,request.data);
             }
 
