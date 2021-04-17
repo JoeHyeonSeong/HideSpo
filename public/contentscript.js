@@ -243,7 +243,7 @@ openBlurred = function (event, node) {
         title: "정말 차단을 해제하시겠습니까?",
         text:"스포일러일 가능성이 있습니다.",
         buttons: {
-            yes: { text: "O", value: true },
+            yes: { text: "확인", value: true },
             cancelButton: { text: "취소", value: false },
         },
         icon:"warning",

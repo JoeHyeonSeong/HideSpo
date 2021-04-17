@@ -61,7 +61,7 @@ clickHandler = function (onclickData, tab) {
     chrome.tabs.sendMessage(tab.id, {
         "message": "spoilerReportPopup",
         "data": onclickData.selectionText
-    });
+    },{"frameId":onclickData.frameId});
 }
 
 chrome.contextMenus.create({
