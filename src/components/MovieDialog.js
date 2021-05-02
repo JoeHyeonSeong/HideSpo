@@ -11,6 +11,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import Dialog from '@material-ui/core/Dialog';
 import IconButton from '@material-ui/core/IconButton';
 import {Close,Add} from '@material-ui/icons';
+import { CircularProgress } from '@material-ui/core';
 
 const styles = {
     text:{
@@ -99,14 +100,16 @@ const styles = {
 class MovieDialog extends Component {
     state = {
         movieData: [],
-        searchStatusText:''
+        searchStatusText:'',
+        isSearching:true
     }
     
     componentDidUpdate(prevProps, prevState) {
         if (prevProps.open != this.props.open && this.props.open) {
             this.setState({
                 movieData: [],
-                searchStatusText: ''
+                searchStatusText: '',
+                isSearching:true
             });
             this.searchMovie();
         }
@@ -147,7 +150,7 @@ class MovieDialog extends Component {
                         </Paper>
                     ))}
                     <div class={classes.tableText}>
-                        {this.state.searchStatusText}
+                        {(this.state.isSearching)?<CircularProgress/>:this.state.searchStatusText}
                     </div>
                 </Paper>
             </Dialog>
@@ -165,8 +168,7 @@ class MovieDialog extends Component {
         let basicUrl = "http://158.247.209.101:5000/search?title=";
         let response = await fetch(basicUrl + this.props.title)
         this.setState({
-            movieData: [],
-            searchStatusText: '검색 중'
+            movieData: []
         }, async () => {
             if (response.ok) {
                 let json = await response.json();
@@ -175,17 +177,18 @@ class MovieDialog extends Component {
                 if (typeof results === 'undefined') {
                     this.setState({
                         movieData: [],
+                        isSearching:false,
                         searchStatusText: '검색결과가 없습니다.'
                     });
                 }
                 else {
-                    this.searchStatusText = '';
                     for (let r of results) {
                         r.title = r.title.replace(/ !HS | !HE /gi, '');
                         r.poster = r.posters.split('|')[0];
                     }
                     this.setState({
                         movieData: results,
+                        isSearching:false,
                         searchStatusText: ''
                     });
                 }

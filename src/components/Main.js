@@ -11,7 +11,8 @@ import SettingsIcon from '@material-ui/icons/Settings';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Carousel from "react-material-ui-carousel"
-
+import Snackbar from '@material-ui/core/Snackbar';
+import { trim } from 'jquery';
 
 const styles = {
     root: {
@@ -127,6 +128,7 @@ class Main extends Component {
     state = {
         movieOpen: false,
         settingOpen:false,
+        snackOpen:false,
         movieDatas: [],
         onWhiteList: false,
         blockPower:"1"
@@ -249,22 +251,6 @@ class Main extends Component {
                         }
 
                     </Carousel>
-                    {/*<div>
-                        <Slider
-                            value={this.state.blockPower}
-                            aria-labelledby="discrete-slider"
-                            valueLabelDisplay="auto"
-                            onChange={this.handleSliderChange}
-                            step={1}
-                            min={0}
-                            max={3}
-                            marks={true}
-                        />
-                        <div>
-                            {this.blockPowerText[this.state.blockPower]}
-                        </div>
-                    </div>
-                    */}
                     <Button
                         variant="contained"
                         className={classes.fullButton}
@@ -273,6 +259,16 @@ class Main extends Component {
                     >
                         {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
                     </Button>
+                    <Snackbar
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'center',
+                        }}
+                        open={this.state.snackOpen}
+                        autoHideDuration={1000}
+                        onClose={this.handleSnackClose}
+                        message="영화가 추가되었습니다."
+                    />
                 </Paper>
             </ThemeProvider>
 
@@ -281,12 +277,15 @@ class Main extends Component {
 
     addMovie = (value) => {
         let trimData = {};
+        //넣을 데이터 생성
         trimData.title = value.title.trim();
         trimData.prodYear = value.prodYear;
         trimData.nation = value.nation;
         trimData.director = value.directors.director.map(d => d.directorNm);
         trimData.actor = [];
         trimData.poster = value.poster;
+
+        //배우/등장인물 추가
         for (let s of value.staffs.staff) {
             if (s.staffRoleGroup == '출연') {
                 let role = s.staffRole.split('/');
@@ -296,16 +295,19 @@ class Main extends Component {
                 trimData.actor.push([s.staffNm, roles]);
             }
         }
+        //중복 체크
+        console.log(this.state.movieDatas);
+        console.log(trimData);
         for (let m of this.state.movieDatas) {
-            if (trimData.title === m.title && trimData.prodYear === m.prodYear) {
+            if (trimData.title === m.title[0] && trimData.prodYear === m.prodYear) {
                 this.handleSearchClose();
                 return;
             }
         }
-        console.log(trimData)
         let newDatas = this.state.movieDatas.concat(trimData);
         this.setState({
-            movieDatas: newDatas
+            movieDatas: newDatas,
+            snackOpen:true
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
@@ -384,6 +386,12 @@ class Main extends Component {
         if (e.key === 'Enter') {
             this.handleSearchClickOpen();
         }
+    }
+
+    handleSnackClose=()=>{
+        this.setState({
+            snackOpen:false
+        })
     }
 }
 export default withStyles(styles)(Main);

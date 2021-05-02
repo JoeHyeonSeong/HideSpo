@@ -52,7 +52,6 @@ class Setting extends Component {
         this.setState({
             blockPower: String(newValue)
         })
-        console.log(newValue);
         chrome.runtime.sendMessage({
             message: 'blockPowerChange',
             blockPower: String(newValue)
@@ -62,8 +61,6 @@ class Setting extends Component {
     render() {
         const name = 'react';
         const { classes } = this.props;
-        console.log(this.state.blockPower);
-        console.log(typeof this.state.blockPower);
         return (
             <Dialog onClose={this.props.onClose} open={this.props.open}>
                 <List className={classes.root}>
