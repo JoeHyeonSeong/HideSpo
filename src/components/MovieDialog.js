@@ -10,11 +10,11 @@ import { withStyles } from '@material-ui/core/styles';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Dialog from '@material-ui/core/Dialog';
 import IconButton from '@material-ui/core/IconButton';
-import {Close,Add} from '@material-ui/icons';
+import { Close, Add } from '@material-ui/icons';
 import { CircularProgress } from '@material-ui/core';
 
 const styles = {
-    text:{
+    text: {
         textAlign: "center",
         position: "relative",
         color: "#000000f5",
@@ -25,45 +25,45 @@ const styles = {
         display: "flex",
         alignItems: "center"
     },
-    yearText:{
-        fontSize:"smaller"
+    yearText: {
+        fontSize: "smaller"
     },
-    titleText:{
-        fontWeight:"bold",
+    titleText: {
+        fontWeight: "bold",
         wordBreak: "keep-all"
     },
-    title:{
-        padding:0,
-        backgroundColor:"#ffffff00",
-        textAlign:"center",
-        position:"fixed",
-        width:"100%",
-        zIndex:1
+    title: {
+        padding: 0,
+        backgroundColor: "#ffffff00",
+        textAlign: "center",
+        position: "fixed",
+        width: "100%",
+        zIndex: 1
     },
-    cell:{
-        padding:8,
-        height:126,
-        backgroundColor:"#e8e8e894"
+    cell: {
+        padding: 8,
+        height: 126,
+        backgroundColor: "#e8e8e894"
     },
-    tableText:{
-        verticalAlign:"middle",
-        color:"#0000006b",
-        textAlign:"center",
-        lineHeight:'419px'
+    tableText: {
+        verticalAlign: "middle",
+        color: "#0000006b",
+        textAlign: "center",
+        lineHeight: '419px'
     },
     table: {
-        textAlign:"center",
+        textAlign: "center",
     },
-    cell1:{
-        padding:8,
-        textAlign:"right"
+    cell1: {
+        padding: 8,
+        textAlign: "right"
     },
-    cell2:{
-        padding:8,
-        textAlign:"right",
-        width:"100%"
+    cell2: {
+        padding: 8,
+        textAlign: "right",
+        width: "100%"
     },
-    row:{
+    row: {
         width: 180,
         minHeight: 240,
         display: "flex",
@@ -71,14 +71,15 @@ const styles = {
         borderRadius: 10,
         position: "relative"
     },
-    closeButton:{
-        padding:4,
-        marginTop:15,
-        marginLeft:-16,
-        backgroundColor:"#00000042",
-        position:"fixed",
-        zIndex:1,
-        left:'50%',
+    closeButton: {
+        padding: 4,
+        margin: "15px auto",
+        //marginLeft:-16,
+        backgroundColor: "#00000042",
+        position: "fixed",
+        zIndex: 1,
+        left: '0',
+        right:'0',
         '&:hover': {
             backgroundColor: '#0000008a',
         },
@@ -87,7 +88,7 @@ const styles = {
         position: "absolute",
         right: "0%",
         padding: 4,
-        backgroundColor:'#00000042',
+        backgroundColor: '#00000042',
         '&:hover': {
             backgroundColor: '#0000008a',
         },
@@ -100,16 +101,16 @@ const styles = {
 class MovieDialog extends Component {
     state = {
         movieData: [],
-        searchStatusText:'',
-        isSearching:true
+        searchStatusText: '',
+        isSearching: true
     }
-    
+
     componentDidUpdate(prevProps, prevState) {
         if (prevProps.open != this.props.open && this.props.open) {
             this.setState({
                 movieData: [],
                 searchStatusText: '',
-                isSearching:true
+                isSearching: true
             });
             this.searchMovie();
         }
@@ -120,10 +121,10 @@ class MovieDialog extends Component {
         const { classes } = this.props;
         return (
             <Dialog fullScreen={true} onClose={this.props.onClose} open={this.props.open}>
-                <IconButton aria-label="close" className={classes.closeButton} onClick={this.props.onClose}>
-                    <Close color="secondary"></Close>
-                </IconButton>
                 <Paper className={classes.table} square={true} elevation={0}>
+                    <IconButton aria-label="close" className={classes.closeButton} onClick={this.props.onClose}>
+                        <Close color="secondary"></Close>
+                    </IconButton>
                     {this.state.movieData.map((row) => (
                         <Paper className={classes.row} key={row.name} elevation={3}>
                             <span style={
@@ -150,7 +151,7 @@ class MovieDialog extends Component {
                         </Paper>
                     ))}
                     <div class={classes.tableText}>
-                        {(this.state.isSearching)?<CircularProgress/>:this.state.searchStatusText}
+                        {(this.state.isSearching) ? <CircularProgress /> : this.state.searchStatusText}
                     </div>
                 </Paper>
             </Dialog>
@@ -177,7 +178,7 @@ class MovieDialog extends Component {
                 if (typeof results === 'undefined') {
                     this.setState({
                         movieData: [],
-                        isSearching:false,
+                        isSearching: false,
                         searchStatusText: '검색결과가 없습니다.'
                     });
                 }
@@ -188,7 +189,7 @@ class MovieDialog extends Component {
                     }
                     this.setState({
                         movieData: results,
-                        isSearching:false,
+                        isSearching: false,
                         searchStatusText: ''
                     });
                 }

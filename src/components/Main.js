@@ -12,7 +12,6 @@ import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Carousel from "react-material-ui-carousel"
 import Snackbar from '@material-ui/core/Snackbar';
-import { trim } from 'jquery';
 
 const styles = {
     root: {
@@ -128,13 +127,15 @@ class Main extends Component {
     state = {
         movieOpen: false,
         settingOpen:false,
-        snackOpen:false,
+        addSnackOpen:false,
+        deleteSnackOpen:false,
         movieDatas: [],
         onWhiteList: false,
         blockPower:"1"
     }
     searchTitle = '';
     bodyText = '';
+    snackTime=1500;
 
     componentDidMount() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -264,10 +265,20 @@ class Main extends Component {
                             vertical: 'bottom',
                             horizontal: 'center',
                         }}
-                        open={this.state.snackOpen}
-                        autoHideDuration={1000}
-                        onClose={this.handleSnackClose}
+                        open={this.state.addSnackOpen}
+                        autoHideDuration={this.snackTime}
+                        onClose={this.handleAddSnackClose}
                         message="영화가 추가되었습니다."
+                    />
+                    <Snackbar
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'center',
+                        }}
+                        open={this.state.deleteSnackOpen}
+                        autoHideDuration={this.snackTime}
+                        onClose={this.handleDeleteSnackClose}
+                        message="영화가 삭제되었습니다."
                     />
                 </Paper>
             </ThemeProvider>
@@ -296,8 +307,6 @@ class Main extends Component {
             }
         }
         //중복 체크
-        console.log(this.state.movieDatas);
-        console.log(trimData);
         for (let m of this.state.movieDatas) {
             if (trimData.title === m.title[0] && trimData.prodYear === m.prodYear) {
                 this.handleSearchClose();
@@ -307,7 +316,7 @@ class Main extends Component {
         let newDatas = this.state.movieDatas.concat(trimData);
         this.setState({
             movieDatas: newDatas,
-            snackOpen:true
+            addSnackOpen:true
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
@@ -321,7 +330,8 @@ class Main extends Component {
         const { movieDatas } = this.state;
         let newDatas = movieDatas.filter(info => info.title !== value.title);
         this.setState({
-            movieDatas: newDatas
+            movieDatas: newDatas,
+            deleteSnackOpen:true
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
@@ -388,9 +398,15 @@ class Main extends Component {
         }
     }
 
-    handleSnackClose=()=>{
+    handleAddSnackClose=()=>{
         this.setState({
-            snackOpen:false
+            addSnackOpen:false
+        })
+    }
+
+    handleDeleteSnackClose=()=>{
+        this.setState({
+            deleteSnackOpen:false
         })
     }
 }
