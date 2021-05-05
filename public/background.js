@@ -5,13 +5,20 @@ let movieData;
 let blockPower;
 let serverUrl="http://158.247.209.101:5000";
 let nlpCheckMap=new Map();
+let nlpCheckSendSet = new Set();
+let isSpoilerSet;
+let noSpoilerSet;
+let userReportMap;
 
 try {
-    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower'],
+    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower', 'isSpoilerSet', 'noSpoilerSet', 'userReportMap'],
         items => {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
             movieData = (typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
             blockPower = (typeof items.blockPower == "undefined") ? 1 : items.blockPower;
+            isSpoilerSet = (typeof items.isSpoilerSet == "undefined") ? [] : items.isSpoilerSet;
+            noSpoilerSet = (typeof items.noSpoilerSet == "undefined") ? [] : items.noSpoilerSet;
+            userReportMap = (typeof items.userReportMap == "undefined") ? [] : items.userReportMap;
 
             //console.log(items);
         });
@@ -53,25 +60,23 @@ chrome.tabs.onActivated.addListener(
     }
 
 );
-clickHandler = function(e) {
-    console.log(e);
+clickHandler = function (onclickData, tab) {
+    console.log(onclickData);
+    console.log(tab);
+
+    chrome.tabs.sendMessage(tab.id, {
+        "message": "spoilerReportPopup",
+        "data": onclickData.selectionText
+    },{"frameId":onclickData.frameId});
 }
 
 chrome.contextMenus.create({
     "title":"스포일러 신고",
-    "contexts":["page", "selection", "image", "link"],
+    "contexts":["selection"],
+    "type":"normal",
     "onclick" : clickHandler
 })
 
-chrome.tabs.onUpdated.addListener(function
-    (tabId, changeInfo, tab) {
-      // read changeInfo data and do something with it (like read the url)
-      if (changeInfo.url) {
-        // do something here
-  
-      }
-    }
-  );
 
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     //console.log('sender');
@@ -104,8 +109,17 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         let newData = request.movieData;
         if (request.add) {
             newData = trimRole(newData);
+            for (const [i, v] of request.userReport.entries()) {
+                report(i, v);
+            }
+            userReportMap = [];
+        } else {
+            addDataToMap(request.deletedMovie);
         }
         movieData = newData;
+        chrome.storage.sync.set({ 'isSpoilerSet': isSpoilerSet });
+        chrome.storage.sync.set({ 'noSpoilerSet': noSpoilerSet });
+        chrome.storage.sync.set({ 'userReportMap': userReportMap });
         chrome.storage.sync.set({ 'movieDatas': movieData });
         updateContentScript();
     } else if (request.message === 'blockPowerChange') {
@@ -113,68 +127,121 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         chrome.storage.sync.set({ 'blockPower': blockPower });
         updateContentScript();
     } else if (request.message === 'nlpCheck') {
-        let result;
-        if (nlpCheckMap.has(request.data))
-            result = nlpCheckMap.get(request.data);
-        else{
-            result = await spoilerCheck(request.data);
-            nlpCheckMap.set(request.data, result);
-        }
-        //console.log(request.data)
-        //console.log(result)
-        console.log(result);
-        chrome.tabs.sendMessage(sender.tab.id,
-            {
-                message: 'nlpReply',
-                isSpoiler: result,
-                nodeNum: request.nodeNum,
-                data: request.data,
-                originData: request.originData
-            });
-    }else if(request.message === 'wordExist'){
+        spoilerCheck(request,sender.tab.id);
+
+    } else if (request.message === 'wordExist') {
         chrome.runtime.sendMessage({
             message: 'wordExistReply',
             exist: wordExist(word),
         });
-    }else if(request.message==="report"){
-        await report(request.data,request.isSpoiler);
+    } else if (request.message === "report") {
+        report(request.data, request.isSpoiler);
+    } else if (request.message === "setCache") {
+        nlpCheckMap.set(request.data, request.isSpoiler);
     }
 });
 
+function sendNlpReply(tabId, isSpoiler, title, nodeNum, data, originData) {
+    chrome.tabs.sendMessage(tabId,
+        {
+            message: 'nlpReply',
+            isSpoiler: isSpoiler,
+            title: title,
+            nodeNum: nodeNum,
+            data: data,
+            originData: originData
+        });
+}
+
+function addDataToSet(isSpoiler, originData, title) {
+    if (isSpoiler) {
+        isSpoilerSet.push([title, originData]);
+        chrome.storage.sync.set({ 'isSpoilerSet': isSpoilerSet });
+    }
+    else {
+        noSpoilerSet.push([title, originData]);
+        chrome.storage.sync.set({ 'noSpoilerSet': noSpoilerSet });
+    }
+}
+
+function addDataToMap(deletedMovie) {
+    let number = 2;                                     //사용자에게 물어볼 문구 숫자/2
+    let spoCount = 0;
+    if (isSpoilerSet.length < number)                   //질문 숫자보다 적을린 없지만 그냥 제한 걸어둠
+        number = isSpoilerSet.length;
+    if (noSpoilerSet.length < number)
+        number = noSpoilerSet.length;
+    for (let [i, isSpo] of isSpoilerSet.sort(() => Math.random() - 0.5).entries()) {
+        
+        if (deletedMovie.filter(info => info == isSpo[0]).length) {
+            if (spoCount < number) {
+                userReportMap.push(isSpo[1]);
+                spoCount++;
+            }
+            if (i == isSpoilerSet.length-1) {
+                isSpoilerSet = [];       
+            }
+        }
+    }  
+    for (let [i, noSpo] of noSpoilerSet.sort(() => Math.random() - 0.5).entries()) {
+        if (deletedMovie.filter(info => info == noSpo[0]).length) {
+            if (spoCount < number * 2) {
+                userReportMap.push(noSpo[1]);
+                spoCount++;
+            }
+            if (i == noSpoilerSet.length - 1) {
+                noSpoilerSet = [];
+            }
+        }
+    }
+    while (userReportMap.sort(() => Math.random() - 0.5).length > number * 2) {
+        userReportMap.pop();
+    }
+    
+    //chrome.storage.sync.set({ 'noSpoilerSet': noSpoilerSet });
+}
+
 function trimRole(newData) {
+    console.log(newData)
     let movie = newData[newData.length - 1];
+    //title
+    let titles = [];
+    insertKeyword(titles, movie.title);
+    titles.push(movie.title.split(/ |:/)[0]);
+    titles.sort((a, b) => { return b.length - a.length });
+    console.log(titles);
+    movie.title=titles;
+    //actor
     let actors = [];
     for (let a of movie.actor.slice(0, actorNum)) {
-        actors.push(a[0]);
+        console.log(a);
+        insertKeyword(actors, a[0]);
         for (let role of a[1]) {
-            if (!wordExist(role) && isNaN(role)) {
-                actors.push(role);
+            if (!wordExist(role)&&role.length>1) {
+                insertKeyword(actors, role);
+                let splitted = role.split(" ");
+                if (splitted.length > 1&&!wordExist(splitted[0])&&splitted[0].length>1)
+                    actors.push(splitted[0]);
             }
         }
     }
     actors.sort((a, b) => { return b.length - a.length });
     console.log(actors);
     movie.actor = actors;
-
-   console.log(newData);
     return newData;
 }
 
-function insertActor(list, actor) {
-    list.push(actor);
-    let trimmed = actor.replaceAll(" ", "");
-    if (trimmed != actor)
+function insertKeyword(list, keyword) {
+    list.push(keyword);
+    let trimmed = keyword.replaceAll(" ", "");
+    if (trimmed != keyword)
         list.push(trimmed);
 }
 
-function sendWhiteList_content() {
-    
+function sendWhiteList_content() {    
     chrome.tabs.query({ active: true }, function (tabs) {
-        //console.log(tabs)
         for(tab of tabs){
-            //console.log(tab);
             let url=trimUrl(tab.url);
-            //console.log(url);
             chrome.tabs.sendMessage(tab.id,
                 {
                     message: 'whiteList',
@@ -182,26 +249,7 @@ function sendWhiteList_content() {
                 });
             iconCheck(url)
         }
-        /*
-           chrome.tabs.executeScript(
-            { code: "document.domain" },
-            function (results) {
-                chrome.runtime.lastError;
-                console.log(results)
-                if (results == undefined)
-                    return;
-                let url = results[0];
-                chrome.tabs.sendMessage(tabs[0].id,
-                    {
-                        message: 'whiteList',
-                        onWhiteList: isOnWhiteList(url)
-                    });
-                iconCheck(url)
-            });
-            */
     });
-
-    
 }
 
 function sendWhiteList_popup(trimUrl) {
@@ -212,10 +260,12 @@ function sendWhiteList_popup(trimUrl) {
 }
 
 function updateContentScript() {
+    console.log(userReportMap);
     chrome.runtime.sendMessage({
         message: 'getMovieDataReply',
         movieData: movieData,
-        blockPower: blockPower
+        blockPower: blockPower,
+        userReportMap: userReportMap
     });
     chrome.tabs.query({ active: true }, function (tabs) {
         for(let tab of tabs){
@@ -286,21 +336,31 @@ function isOnWhiteList(url) {
     return false;
 }
 
-async function spoilerCheck(str) {
-    let requestUrl = serverUrl+"/predict"
-    let data={contents:str}
-    let response = await fetch(requestUrl, {
-        method: 'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(data)
-    })
-
-    if (response.ok) {
-        let json = await response.json();
-        return json['output'];
+async function spoilerCheck(request,tabId) {
+    let result;
+    if (nlpCheckMap.has(request.data)) {//캐시에 있음
+        result = nlpCheckMap.get(request.data);
+        sendNlpReply(tabId, result, request.title, request.nodeNum, request.data, request.originData);
+        addDataToSet(result, request.originData, request.title);      
     }
-    else{
-        return false;//서버 응답 없으면 다 스포 아님
+    else if (!nlpCheckSendSet.has(request.data)){//서버에 이걸 보내지 않았으면 서버에서 호출
+        nlpCheckSendSet.add(request.data);//서버에 보냈다고 체크
+        let requestUrl = serverUrl + "/predict"
+        let data = { contents: request.data }
+
+        fetch(requestUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json())
+        .then(function (response) {
+            let result=response['output'];
+            nlpCheckMap.set(request.data, result);
+            console.log(result);
+            sendNlpReply(tabId, result, request.title, request.nodeNum, request.data, request.originData);
+            addDataToSet(result, request.originData, request.title);
+        })
+        .catch(error => console.log("server not response..."));
     }
 }
 
@@ -308,8 +368,7 @@ async function report(str, isSpoiler) {
 
     let requestUrl = serverUrl + "/report";
     let data = { text: str, isSpoiler: isSpoiler }
-    nlpCheckMap.set(str, isSpoiler);
-    await fetch(requestUrl, {
+    fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

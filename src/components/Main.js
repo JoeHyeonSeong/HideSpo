@@ -126,10 +126,12 @@ const theme = createMuiTheme({
 class Main extends Component {
     state = {
         movieOpen: false,
-        settingOpen:false,
+        settingOpen: false,
+        reportOpen: false,
         movieDatas: [],
+        userReportMap: new Map(),
         onWhiteList: false,
-        blockPower:1
+        blockPower:"1"
     }
     searchTitle = '';
     bodyText = '';
@@ -141,9 +143,10 @@ class Main extends Component {
             } else if (request.message === "getMovieDataReply") {
                 this.setState({
                     movieDatas: request.movieData,
-                    blockPower: request.blockPower
+                    blockPower: request.blockPower,
+                    userReportMap: request.userReportMap
                 });
-            }
+            } 
         });
         chrome.runtime.sendMessage({
             message: 'getMovieData'
@@ -158,13 +161,11 @@ class Main extends Component {
                 });
             });
     }
-
     render() {
         const { classes } = this.props;
         let tableText = (this.state.movieDatas.length > 0) ? "" : "추가된 영화 없음";
-        console.log(this.movieData);
         return (
-
+    
             <ThemeProvider theme={theme}>
                 <Paper className={classes.root} square={true}>
                     <Paper className={classes.title} elevation={3} square={true}>
@@ -195,11 +196,10 @@ class Main extends Component {
                         title={this.searchTitle}
                         open={this.state.movieOpen}
                         onClose={this.handleSearchClose}></MovieDialog>
-                        <Setting
+                    <Setting
                         open={this.state.settingOpen}
                         onClose={this.handleSettingClose}
-                        blockPower={this.state.blockPower}
-                        ></Setting>
+                        blockPower={this.state.blockPower}></Setting>            
                     <Carousel
                         className={classes.table}
                         autoPlay={false}
@@ -236,7 +236,7 @@ class Main extends Component {
                                             </IconButton>
                                             <div className={classes.text}>
                                                 <div className={classes.width100}>
-                                                    <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
+                                                    <p class={classes.titleText}>{(row.title[0].length < 14) ? row.title[0] : row.title[0].substring(0, 14) + "..."}</p>
                                                     <p class={classes.yearText}>{row.prodYear}</p>
                                                 </div>
 
@@ -303,15 +303,26 @@ class Main extends Component {
                 return;
             }
         }
-        console.log(trimData)
+        console.log(trimData);
         let newDatas = this.state.movieDatas.concat(trimData);
+        let userReport = [];
+        for (let n of this.state.userReportMap) {
+            let spoConfirm = window.confirm(n);
+            userReport.push([n, spoConfirm]);
+        }
+        console.log(userReport);
         this.setState({
-            movieDatas: newDatas
+            movieDatas: newDatas,
+            reportOpen: true
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
+            userReport: userReport,
             add: true
+        });
+        this.setState({
+            userReport: []
         });
         this.handleSearchClose();
     }
@@ -325,6 +336,7 @@ class Main extends Component {
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
+            deletedMovie: value.title,
             add: false
         });
     }
@@ -349,6 +361,12 @@ class Main extends Component {
                 }
             });
 
+    }
+
+    handleReportClose = () => {
+        this.setState({
+            reportOpen: false
+        })
     }
 
     handleSettingClose = () => {
