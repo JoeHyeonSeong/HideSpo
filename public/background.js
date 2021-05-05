@@ -6,13 +6,19 @@ let blockPower;
 let serverUrl="http://158.247.209.101:5000";
 let nlpCheckMap=new Map();
 let nlpCheckSendSet=new Set();
+let isSpoilerSet;
+let noSpoilerSet;
+let userReportMap;
 
 try {
-    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower'],
+    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower', 'isSpoilerSet', 'noSpoilerSet', 'userReportMap'],
         items => {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
             movieData = (typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
             blockPower = (typeof items.blockPower == "undefined") ? 1 : items.blockPower;
+            isSpoilerSet = (typeof items.isSpoilerSet == "undefined") ? [] : items.isSpoilerSet;
+            noSpoilerSet = (typeof items.noSpoilerSet == "undefined") ? [] : items.noSpoilerSet;
+            userReportMap = (typeof items.userReportMap == "undefined") ? [] : items.userReportMap;
 
             //console.log(items);
         });
@@ -103,8 +109,17 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         let newData = request.movieData;
         if (request.add) {
             newData = trimRole(newData);
+            for (const [i, v] of request.userReport.entries()) {
+                report(i, v);
+            }
+            userReportMap = [];
+        } else {
+            addDataToMap(request.deletedMovie);
         }
         movieData = newData;
+        chrome.storage.sync.set({ 'isSpoilerSet': isSpoilerSet });
+        chrome.storage.sync.set({ 'noSpoilerSet': noSpoilerSet });
+        chrome.storage.sync.set({ 'userReportMap': userReportMap });
         chrome.storage.sync.set({ 'movieDatas': movieData });
         updateContentScript();
     } else if (request.message === 'blockPowerChange') {
@@ -126,15 +141,61 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     }
 });
 
-function sendNlpReply(tabId, isSpoiler, nodeNum, data, originData) {
+function sendNlpReply(tabId, isSpoiler, title, nodeNum, data, originData) {
     chrome.tabs.sendMessage(tabId,
         {
             message: 'nlpReply',
             isSpoiler: isSpoiler,
+            title: title,
             nodeNum: nodeNum,
             data: data,
             originData: originData
         });
+}
+
+function addDataToSet(isSpoiler, originData, title) {
+    if (isSpoiler) {
+        isSpoilerSet.push([title, originData]);
+        chrome.storage.sync.set({ 'isSpoilerSet': isSpoilerSet });
+    }
+    else {
+        noSpoilerSet.push([title, originData]);
+        chrome.storage.sync.set({ 'noSpoilerSet': noSpoilerSet });
+    }
+}
+
+function addDataToMap(deletedMovie) {
+    let number = 2;                                     //사용자에게 물어볼 문구 숫자/2
+    let spoCount = 0;
+    if (isSpoilerSet.length < number)                   //질문 숫자보다 적을린 없지만 그냥 제한 걸어둠
+        number = isSpoilerSet.length;
+    if (noSpoilerSet.length < number)
+        number = noSpoilerSet.length;
+    for (let [i, isSpo] of isSpoilerSet.sort(() => Math.random() - 0.5).entries()) {        
+        if (deletedMovie.filter(info => info == isSpo[0]).length) {
+            if (spoCount < number) {
+                userReportMap.push(isSpo[1]);
+                spoCount++;
+            }
+            if (i == isSpoilerSet.length-1) 
+                isSpoilerSet = [];                   
+        }
+    }  
+    for (let [i, noSpo] of noSpoilerSet.sort(() => Math.random() - 0.5).entries()) {
+        if (deletedMovie.filter(info => info == noSpo[0]).length) {
+            if (spoCount < number * 2) {
+                userReportMap.push(noSpo[1]);
+                spoCount++;
+            }
+            if (i == noSpoilerSet.length - 1) 
+                noSpoilerSet = [];            
+        }
+    }
+    while (userReportMap.sort(() => Math.random() - 0.5).length > number * 2) {
+        userReportMap.pop();
+    }
+    
+    //chrome.storage.sync.set({ 'noSpoilerSet': noSpoilerSet });
 }
 
 function trimRole(newData) {
@@ -174,8 +235,7 @@ function insertKeyword(list, keyword) {
         list.push(trimmed);
 }
 
-function sendWhiteList_content() {
-    
+function sendWhiteList_content() {    
     chrome.tabs.query({ active: true }, function (tabs) {
         for(tab of tabs){
             let url=trimUrl(tab.url);
@@ -187,8 +247,6 @@ function sendWhiteList_content() {
             iconCheck(url)
         }
     });
-
-    
 }
 
 function sendWhiteList_popup(trimUrl) {
@@ -199,10 +257,12 @@ function sendWhiteList_popup(trimUrl) {
 }
 
 function updateContentScript() {
+    console.log(userReportMap);
     chrome.runtime.sendMessage({
         message: 'getMovieDataReply',
         movieData: movieData,
-        blockPower: blockPower
+        blockPower: blockPower,
+        userReportMap: userReportMap
     });
     chrome.tabs.query({ active: true }, function (tabs) {
         for(let tab of tabs){
@@ -277,7 +337,8 @@ async function spoilerCheck(request,tabId) {
     let result;
     if (nlpCheckMap.has(request.data)) {//캐시에 있음
         result = nlpCheckMap.get(request.data);
-        sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData)
+        sendNlpReply(tabId, result, request.title, request.nodeNum, request.data, request.originData);
+        addDataToSet(result, request.originData, request.title);      
     }
     else if (!nlpCheckSendSet.has(request.data)){//서버에 이걸 보내지 않았으면 서버에서 호출
         nlpCheckSendSet.add(request.data);//서버에 보냈다고 체크
@@ -293,7 +354,8 @@ async function spoilerCheck(request,tabId) {
             let result=response['output'];
             nlpCheckMap.set(request.data, result);
             console.log(result);
-            sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);
+            sendNlpReply(tabId, result, request.title, request.nodeNum, request.data, request.originData);
+            addDataToSet(result, request.originData, request.title);
         })
         .catch(error => console.log("server not response..."));
     }

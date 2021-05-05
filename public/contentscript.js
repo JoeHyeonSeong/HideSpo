@@ -16,6 +16,7 @@ shouldReplaceText = function (node,text) {
     var actorSpoiler = false;
     var directorSpoiler = false;
     var isSpoiler = false;
+    var presentTitle = "";
     if (text.indexOf("http") == 0)
         return false;
     text = text.replaceAll('↵', "").trim();
@@ -28,19 +29,25 @@ shouldReplaceText = function (node,text) {
         //keyword exact math
         //title
         for (let title of movie.title) {
-            if (replacedText.indexOf(title) != -1)
-                titleSpoiler=true;
+            if (replacedText.indexOf(title) != -1) {
+                titleSpoiler = true;
+                presentTitle = title;
+            }
             replacedText = replacedText.replaceAll(title, "타이틀")
         }
         //actor
         for (let actor of movie.actor) {
-            if (replacedText.indexOf(actor) != -1)
+            if (replacedText.indexOf(actor) != -1) {
                 actorSpoiler = true;
+                presentTitle = movie.title[0];
+            }
             replacedText = replacedText.replaceAll(actor, "배우")
         }
         for (let director of movie.director) {
-            if (replacedText.indexOf(director) != -1)
+            if (replacedText.indexOf(director) != -1) {
                 directorSpoiler = true;
+                presentTitle = movie.title[0];
+            }
             replacedText = replacedText.replaceAll(director, "감독")
         }
 
@@ -50,6 +57,7 @@ shouldReplaceText = function (node,text) {
             nodeMap.set(nodeCount, node);
             chrome.runtime.sendMessage({
                 message: 'nlpCheck',
+                title: presentTitle,
                 data: replacedText,
                 originData: text,
                 nodeNum: nodeCount
@@ -297,7 +305,6 @@ function spoilerPopUp(text,maskedText) {
         }
     )
 }
-
 ///start를 가려야할때 적절히 가릴 상위의 노드를 찾음
 findTargetParent = function (start) {
     let cur = start;
@@ -351,7 +358,6 @@ AttachBlockObserver = function () {
         //...
     });
 }
-
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     if (request.message === 'getMovieDataReply') {
@@ -374,15 +380,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
-        //console.log(request.originData);
-        //console.log(request.isSpoiler);
         if (request.isSpoiler) {
             if (node != undefined) {
                 console.log(Date.now() - startTime);
-                blurBlock(node,request.originData,request.data);
+                blurBlock(node, request.originData, request.data);
             }
-
-        }
+        }         
     }
     if (request.message == 'spoilerReportPopup') {
         spoilerPopUp(request.data,maskToMovieInfo(request.data));
