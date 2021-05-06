@@ -27,11 +27,35 @@ const styles = {
     },
     yesButton:{
         backgroundColor:'#1fd6fe',
-        color:'white'
+        color:'white',
+        margin:'auto 20px',
+        '&:hover': {
+            backgroundColor: '#1fd6fe',
+        },
     },
     noButton:{
         backgroundColor:'#ff5e41',
-        color:'white'
+        color:'white',
+        margin:'auto 20px',
+        '&:hover': {
+            backgroundColor: '#ff5e41',
+        },
+    },
+    questionNum:{
+        textAlign:"right",
+        margin:"15px"
+    },
+    titleArea:{
+        margin:"15px",
+        border:"solid 1px",
+        borderColor:"#c9dae1",
+    },
+    textArea:{
+        margin:"15px",
+        minHeight:"180px",
+        border:"solid 1px",
+        borderColor:"#c9dae1",
+        padding:"5px"
     }
 };
 
@@ -43,7 +67,7 @@ class Question extends Component {
     }
 
     questionNum=0;
-
+    textThreshold=200;
     componentDidUpdate(prevProps, prevState) {
         if (prevProps.open != this.props.open && this.props.open) {
             this.questionNum=this.props.questions.length;
@@ -70,15 +94,27 @@ class Question extends Component {
                     <IconButton aria-label="close" className={classes.closeButton} onClick={()=>{this.props.onClose(false)}}>
                         <Close color="secondary"></Close>
                     </IconButton>
-                    <div>
+                    <div className={classes.questionNum}>
                         {this.state.index+1+" / "+this.questionNum}
                     </div>
-                    <div>
+                    <h2>
+                        스포일러가 포함되어있습니까?
+                    </h2>
+                    <Paper
+                    className={classes.titleArea}
+                    elevation={0}
+                    >
+                        <h3>
                         {this.state.title}
-                    </div>
-                    <div>
-                        {this.state.text}
-                    </div>
+                        </h3>
+                        
+                    </Paper>
+                    <Paper
+                    elevation={0}
+                    className={classes.textArea}
+                    >
+                    {(this.state.text < this.textThreshold) ? this.state.text : this.state.text.substring(0, this.textThreshold) + "..."}
+                    </Paper>
                     <Button
                     onClick={()=>{this.answer(true)}}
                     className={classes.yesButton}
@@ -93,16 +129,17 @@ class Question extends Component {
                     </Button>
                 </Paper>
             </Dialog>
-
         );
     }
 
     answer=(result)=>{
         console.log("answer");
         console.log(result);
+        let masked=this.props.questions[this.state.index]['masked'];
+        console.log(masked);
         chrome.runtime.sendMessage({
             message: 'report',
-            data: this.state.text,
+            data: masked,
             isSpoiler: result
         });
         if (this.state.index < this.props.questions.length-1) 

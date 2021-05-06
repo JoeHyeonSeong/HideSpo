@@ -125,10 +125,10 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     }
 });
 
-function addQuestion(isSpoiler, originalData, movieName) {
+function addQuestion(isSpoiler, originalData,maskedData, movieName) {
     let questions = (isSpoiler) ? questions_spoiler : questions_noSpoiler;
     if (questions.length < questionMaxSize) {
-        questions.push({ "title": movieName, "text": originalData });
+        questions.push({ "title": movieName, "text": originalData,"masked":maskedData });
     }
     if (isSpoiler)
         chrome.storage.sync.set({ 'questions_spoiler': questions });
@@ -343,7 +343,7 @@ async function spoilerCheck(request,tabId) {
             let result=response['output'];
             nlpCheckMap.set(request.data, result);
             sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);
-            addQuestion(result, request.originData, request.title);
+            addQuestion(result, request.originData,request.data, request.title);
         })
             .catch(error => console.log("server not response..."));
     }
@@ -351,11 +351,11 @@ async function spoilerCheck(request,tabId) {
 
 async function report(str, isSpoiler) {
     //question에 있으면 지우기
-    let rmIdx = questions_spoiler.findIndex(function (item) { return item["text"] == str });
+    let rmIdx = questions_spoiler.findIndex(function (item) { return item["masked"] == str });
     if (rmIdx > -1)
         questions_spoiler.splice(rmIdx, 1);
 
-    rmIdx = questions_noSpoiler.findIndex(function (item) { return item["text"] == str });
+    rmIdx = questions_noSpoiler.findIndex(function (item) { return item["masked"] == str });
     if (rmIdx > -1)
         questions_noSpoiler.splice(rmIdx, 1);
 

@@ -127,17 +127,15 @@ class Main extends Component {
     state = {
         movieOpen: false,
         settingOpen:false,
-        addSnackOpen:false,
-        deleteSnackOpen:false,
+        snackOpen:false,
         movieDatas: [],
-        userReportMap: new Map(),
         onWhiteList: false,
-        blockPower:"1"
+        blockPower:"1",
+        snackText:''
     }
     searchTitle = '';
     bodyText = '';
     snackTime=1500;
-
     componentDidMount() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.message === "whiteList") {
@@ -146,7 +144,6 @@ class Main extends Component {
                 this.setState({
                     movieDatas: request.movieData,
                     blockPower: request.blockPower,
-                    userReportMap: request.userReportMap
                 });
             } 
         });
@@ -198,7 +195,9 @@ class Main extends Component {
                         title={this.searchTitle}
                         open={this.state.movieOpen}
                         onClose={this.handleSearchClose}
-                        movieDatas={this.state.movieDatas}>
+                        movieDatas={this.state.movieDatas}
+                        onDuplicate={this.setDuplicateSnack}
+                        >
                         </MovieDialog>
 
                         <Setting
@@ -269,25 +268,23 @@ class Main extends Component {
                             vertical: 'bottom',
                             horizontal: 'center',
                         }}
-                        open={this.state.addSnackOpen}
+                        open={this.state.snackOpen}
                         autoHideDuration={this.snackTime}
-                        onClose={this.handleAddSnackClose}
-                        message="영화가 추가되었습니다."
-                    />
-                    <Snackbar
-                        anchorOrigin={{
-                            vertical: 'bottom',
-                            horizontal: 'center',
-                        }}
-                        open={this.state.deleteSnackOpen}
-                        autoHideDuration={this.snackTime}
-                        onClose={this.handleDeleteSnackClose}
-                        message="영화가 삭제되었습니다."
+                        onClose={this.handleSnackClose}
+                        message={this.state.snackText}
                     />
                 </Paper>
             </ThemeProvider>
 
         );
+    }
+
+    setDuplicateSnack=()=>{
+        console.log("hi!!!");
+        this.setState({
+            snackOpen:true,
+            snackText:"이미 추가된 영화입니다."
+        });
     }
 
     addMovie = (value) => {
@@ -310,32 +307,17 @@ class Main extends Component {
                 trimData.actor.push([s.staffNm, roles]);
             }
         }
-        //중복 체크
-        for (let m of this.state.movieDatas) {
-            if (trimData.title === m.title[0] && trimData.prodYear === m.prodYear) {
-                this.handleSearchClose();
-                return;
-            }
-        }
+        
         let newDatas = this.state.movieDatas.concat(trimData);
-        let userReport = [];
-        for (let n of this.state.userReportMap) {
-            let spoConfirm = window.confirm(n);
-            userReport.push([n, spoConfirm]);
-        }
-        console.log(userReport);
         this.setState({
             movieDatas: newDatas,
-            addSnackOpen:true
+            snackOpen:true,
+            snackText:"영화가 추가되었습니다."
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
-            userReport: userReport,
             add: true
-        });
-        this.setState({
-            userReport: []
         });
         this.handleSearchClose();
     }
@@ -343,9 +325,11 @@ class Main extends Component {
     deleteMovie = (value) => {
         const { movieDatas } = this.state;
         let newDatas = movieDatas.filter(info => info.title !== value.title);
+
         this.setState({
             movieDatas: newDatas,
-            deleteSnackOpen:true
+            snackOpen:true,
+            snackText:"영화가 제거되었습니다."
         });
         chrome.runtime.sendMessage({
             message: 'setMovieData',
@@ -413,15 +397,9 @@ class Main extends Component {
         }
     }
     
-    handleAddSnackClose=()=>{
+    handleSnackClose=()=>{
         this.setState({
-            addSnackOpen:false
-        })
-    }
-
-    handleDeleteSnackClose=()=>{
-        this.setState({
-            deleteSnackOpen:false
+            snackOpen:false
         })
     }
 }

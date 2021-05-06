@@ -165,7 +165,9 @@ class MovieDialog extends Component {
                                 </IconButton>
                                 <div className={classes.text}>
                                     <div className={classes.width100}>
-                                        <p class={classes.titleText}>{(row.title.length < this.textThreshold) ? row.title : row.title.substring(0, this.textThreshold) + "..."}</p>
+                                        <p class={classes.titleText}>
+                                            {(row.title.length < this.textThreshold) ? row.title : row.title.substring(0, this.textThreshold) + "..."}
+                                        </p>
                                         <p class={classes.yearText}>{row.prodYear}</p>
                                     </div>
 
@@ -183,6 +185,17 @@ class MovieDialog extends Component {
     }
 
     addButtonClicked = (movieInfo) => {
+        //중복 체크
+        for (let m of this.props.movieDatas) {
+            console.log(movieInfo.title);
+            console.log(m.title[0]);
+            if (movieInfo.title.trim() === m.title[0].trim()) {
+                this.props.onDuplicate();
+                this.props.onClose();
+                return;
+            }
+        }
+
         chrome.runtime.sendMessage({
             message: 'question',
             questionNum:this.questionNum
