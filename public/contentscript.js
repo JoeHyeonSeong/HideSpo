@@ -22,34 +22,41 @@ shouldReplaceText = function (node,text) {
     if (text.length == 0)
         return false;
     text = text.replaceAll("\n", " ");
+    let targetTitle;
     var replacedText = text;
     //there is no letter or number in the text
     for (let movie of movieData) {
         //keyword exact math
         //title
         for (let title of movie.title) {
-            if (replacedText.indexOf(title) != -1)
+            if (replacedText.indexOf(title) != -1){
                 titleSpoiler=true;
+                targetTitle = movie.title;
+            }
             replacedText = replacedText.replaceAll(title, "타이틀")
         }
         //actor
         for (let actor of movie.actor) {
-            if (replacedText.indexOf(actor) != -1)
+            if (replacedText.indexOf(actor) != -1){
                 actorSpoiler = true;
+                targetTitle = movie.title;
+            }
             replacedText = replacedText.replaceAll(actor, "배우")
         }
         for (let director of movie.director) {
-            if (replacedText.indexOf(director) != -1)
+            if (replacedText.indexOf(director) != -1){
                 directorSpoiler = true;
+                targetTitle = movie.title;
+            }
             replacedText = replacedText.replaceAll(director, "감독")
         }
-
     }
     if (blockPower == "1") {
         if (actorSpoiler || titleSpoiler || directorSpoiler) {
             nodeMap.set(nodeCount, node);
             chrome.runtime.sendMessage({
                 message: 'nlpCheck',
+                title:targetTitle,
                 data: replacedText,
                 originData: text,
                 nodeNum: nodeCount

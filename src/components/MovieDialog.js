@@ -1,3 +1,4 @@
+/*global chrome*/
 import React, { Component } from 'react';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
@@ -12,7 +13,7 @@ import Dialog from '@material-ui/core/Dialog';
 import IconButton from '@material-ui/core/IconButton';
 import { Close, Add } from '@material-ui/icons';
 import { CircularProgress } from '@material-ui/core';
-
+import Question from './Question'
 const styles = {
     text: {
         textAlign: "center",
@@ -102,7 +103,22 @@ class MovieDialog extends Component {
     state = {
         movieData: [],
         searchStatusText: '',
-        isSearching: true
+        isSearching: true,
+        questionOpen:false
+    }
+    questionNum=5;
+    selectedMovieInfo;
+    textThreshold=14;
+    questions;
+
+    componentDidMount() {
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+            if (request.message === "questionResponse") {
+                this.questions=request.questions;
+                this.openQuestion(this.questions);
+            }
+
+        });
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -122,6 +138,13 @@ class MovieDialog extends Component {
         return (
             <Dialog fullScreen={true} onClose={this.props.onClose} open={this.props.open}>
                 <Paper className={classes.table} square={true} elevation={0}>
+                    <Question addMovie={this.addMovie}
+                        movieDatas={this.props.movieDatas}
+                        open={this.state.questionOpen}
+                        onClose={this.handleQuestionClose}
+                        questions={this.questions}>
+                    </Question>
+
                     <IconButton aria-label="close" className={classes.closeButton} onClick={this.props.onClose}>
                         <Close color="secondary"></Close>
                     </IconButton>
@@ -137,12 +160,12 @@ class MovieDialog extends Component {
                                     backgroundPosition: 'center',
                                     backgroundSize: 'cover'
                                 }}>
-                                <IconButton color="secondary" className={classes.addButton} variant="contained" onClick={() => { this.props.addMovie(row) }}>
+                                <IconButton color="secondary" className={classes.addButton} variant="contained" onClick={() => { this.addButtonClicked(row) }}>
                                     <Add></Add>
                                 </IconButton>
                                 <div className={classes.text}>
                                     <div className={classes.width100}>
-                                        <p class={classes.titleText}>{(row.title.length < 14) ? row.title : row.title.substring(0, 14) + "..."}</p>
+                                        <p class={classes.titleText}>{(row.title.length < this.textThreshold) ? row.title : row.title.substring(0, this.textThreshold) + "..."}</p>
                                         <p class={classes.yearText}>{row.prodYear}</p>
                                     </div>
 
@@ -158,6 +181,32 @@ class MovieDialog extends Component {
 
         );
     }
+
+    addButtonClicked = (movieInfo) => {
+        chrome.runtime.sendMessage({
+            message: 'question',
+            questionNum:this.questionNum
+        });
+        this.selectedMovieInfo=movieInfo;
+    }
+
+    openQuestion=(questions)=>{
+        console.log(questions);
+        if(questions.length>0){
+            this.setState({questionOpen:true});
+        }
+        else{
+            this.props.addMovie(this.selectedMovieInfo);
+        }
+    }
+
+    handleQuestionClose=(complete)=>{
+        this.setState({questionOpen:false});
+        if(complete){
+            this.props.addMovie(this.selectedMovieInfo);
+        }
+    }
+
 
     handleChange = (e) => {
         this.setState({

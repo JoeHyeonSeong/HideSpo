@@ -1,6 +1,9 @@
 
 const actorNum=10;
 let whiteList = [];
+let questionMaxSize=10;
+let questions_spoiler;
+let questions_noSpoiler;
 let movieData;
 let blockPower;
 let serverUrl="http://158.247.209.101:5000";
@@ -8,13 +11,14 @@ let nlpCheckMap=new Map();
 let nlpCheckSendSet=new Set();
 
 try {
-    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower'],
+    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower','questions_spoiler','questions_noSpoiler'],
         items => {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
             movieData = (typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
             blockPower = (typeof items.blockPower == "undefined") ? 1 : items.blockPower;
-
-            //console.log(items);
+            questions_spoiler = (typeof items.questions_spoiler == "undefined") ? [] : items.questions_spoiler;
+            questions_noSpoiler = (typeof items.questions_noSpoiler == "undefined") ? [] : items.questions_noSpoiler;
+            console.log(items);
         });
 }
 catch {
@@ -73,26 +77,19 @@ chrome.contextMenus.create({
 
 
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
-    //console.log('sender');
-    //console.log(sender);
     if (request.message === "whiteListAdd") {
-        //console.log("add");
-        //console.log(request.url);
         let url = request.url;
-        //console.log(url)
         addWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
     }
     else if (request.message === "whiteListDelete") {
-        //console.log("delete");
         let url = request.url;
         deleteWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
     }
     else if (request.message === "whiteListCheck") {
-        //console.log('check');
         let url = request.url;
         sendWhiteList_popup(url);
     } else if (request.message === "whiteListCheck_content") {
@@ -123,8 +120,62 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         report(request.data, request.isSpoiler);
     } else if (request.message === "setCache") {
         nlpCheckMap.set(request.data, request.isSpoiler);
+    }else if(request.message==="question"){
+        giveQuestion(request.questionNum,request.targetTitle);
     }
 });
+
+function addQuestion(isSpoiler, originalData, movieName) {
+    let questions = (isSpoiler) ? questions_spoiler : questions_noSpoiler;
+    if (questions.length < questionMaxSize) {
+        questions.push({ "title": movieName, "text": originalData });
+    }
+    if (isSpoiler)
+        chrome.storage.sync.set({ 'questions_spoiler': questions });
+    else
+        chrome.storage.sync.set({ 'questions_noSpoiler': questions });
+}
+
+function giveQuestion(questionNum){
+    let maxNum=Math.floor(questionNum/2);
+    console.log(questions_spoiler);
+    let cnt = 0;
+    let result = [];
+    for (let q of questions_spoiler) {
+        if (cnt == maxNum)
+            break;
+        if (movieData.find(element => element['title'][0] == q['title'][0]) == undefined) {
+
+            result.push(q);
+            cnt++;
+        }
+    }
+    cnt=0;
+    maxNum=questionNum-result.length;
+    for (let q of questions_noSpoiler) {
+        if (cnt == maxNum)
+            break;
+        if (movieData.find(element => element['title'][0]==q['title'][0])==undefined){
+            result.push(q);
+            cnt++;
+        }
+    }
+    shuffleArray(result);
+    console.log(result);
+    chrome.runtime.sendMessage({
+        message: 'questionResponse',
+        questions: result
+    });
+}
+
+function shuffleArray(array){
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
 
 function sendNlpReply(tabId, isSpoiler, nodeNum, data, originData) {
     chrome.tabs.sendMessage(tabId,
@@ -206,7 +257,6 @@ function updateContentScript() {
     });
     chrome.tabs.query({ active: true }, function (tabs) {
         for(let tab of tabs){
-            //console.log(tabs);
             if (tab) { // Sanity check
                 chrome.tabs.sendMessage(tab.id,
                     {
@@ -277,7 +327,7 @@ async function spoilerCheck(request,tabId) {
     let result;
     if (nlpCheckMap.has(request.data)) {//캐시에 있음
         result = nlpCheckMap.get(request.data);
-        sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData)
+        sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);
     }
     else if (!nlpCheckSendSet.has(request.data)){//서버에 이걸 보내지 않았으면 서버에서 호출
         nlpCheckSendSet.add(request.data);//서버에 보냈다고 체크
@@ -292,22 +342,37 @@ async function spoilerCheck(request,tabId) {
         .then(function (response) {
             let result=response['output'];
             nlpCheckMap.set(request.data, result);
-            console.log(result);
             sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);
+            addQuestion(result, request.originData, request.title);
         })
-        .catch(error => console.log("server not response..."));
+            .catch(error => console.log("server not response..."));
     }
 }
 
 async function report(str, isSpoiler) {
+    //question에 있으면 지우기
+    let rmIdx = questions_spoiler.findIndex(function (item) { return item["text"] == str });
+    if (rmIdx > -1)
+        questions_spoiler.splice(rmIdx, 1);
 
+    rmIdx = questions_noSpoiler.findIndex(function (item) { return item["text"] == str });
+    if (rmIdx > -1)
+        questions_noSpoiler.splice(rmIdx, 1);
+
+    chrome.storage.sync.set({ 'questions_spoiler': questions_spoiler });
+    chrome.storage.sync.set({ 'questions_noSpoiler': questions_noSpoiler });
+
+    //서버에 보내기
     let requestUrl = serverUrl + "/report";
     let data = { text: str, isSpoiler: isSpoiler }
-    fetch(requestUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
+    if (isSpoiler != null) {
+        fetch(requestUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+    }
+
 }
 
 function wordExist(word) {

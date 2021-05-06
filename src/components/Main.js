@@ -196,7 +196,10 @@ class Main extends Component {
                     <MovieDialog addMovie={this.addMovie}
                         title={this.searchTitle}
                         open={this.state.movieOpen}
-                        onClose={this.handleSearchClose}></MovieDialog>
+                        onClose={this.handleSearchClose}
+                        movieDatas={this.state.movieDatas}>
+                        </MovieDialog>
+
                         <Setting
                         open={this.state.settingOpen}
                         onClose={this.handleSettingClose}
