@@ -130,6 +130,7 @@ class Main extends Component {
         addSnackOpen:false,
         deleteSnackOpen:false,
         movieDatas: [],
+        userReportMap: new Map(),
         onWhiteList: false,
         blockPower:"1"
     }
@@ -144,9 +145,10 @@ class Main extends Component {
             } else if (request.message === "getMovieDataReply") {
                 this.setState({
                     movieDatas: request.movieData,
-                    blockPower: request.blockPower
+                    blockPower: request.blockPower,
+                    userReportMap: request.userReportMap
                 });
-            }
+            } 
         });
         chrome.runtime.sendMessage({
             message: 'getMovieData'
@@ -161,12 +163,11 @@ class Main extends Component {
                 });
             });
     }
-
     render() {
         const { classes } = this.props;
         let tableText = (this.state.movieDatas.length > 0) ? "" : "추가된 영화 없음";
         return (
-
+    
             <ThemeProvider theme={theme}>
                 <Paper className={classes.root} square={true}>
                     <Paper className={classes.title} elevation={3} square={true}>
@@ -201,10 +202,10 @@ class Main extends Component {
                         </MovieDialog>
 
                         <Setting
+
                         open={this.state.settingOpen}
                         onClose={this.handleSettingClose}
-                        blockPower={this.state.blockPower}
-                        ></Setting>
+                        blockPower={this.state.blockPower}></Setting>            
                     <Carousel
                         className={classes.table}
                         autoPlay={false}
@@ -317,6 +318,12 @@ class Main extends Component {
             }
         }
         let newDatas = this.state.movieDatas.concat(trimData);
+        let userReport = [];
+        for (let n of this.state.userReportMap) {
+            let spoConfirm = window.confirm(n);
+            userReport.push([n, spoConfirm]);
+        }
+        console.log(userReport);
         this.setState({
             movieDatas: newDatas,
             addSnackOpen:true
@@ -324,7 +331,11 @@ class Main extends Component {
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
+            userReport: userReport,
             add: true
+        });
+        this.setState({
+            userReport: []
         });
         this.handleSearchClose();
     }
@@ -339,6 +350,7 @@ class Main extends Component {
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
+            deletedMovie: value.title,
             add: false
         });
     }
@@ -400,7 +412,7 @@ class Main extends Component {
             this.handleSearchClickOpen();
         }
     }
-
+    
     handleAddSnackClose=()=>{
         this.setState({
             addSnackOpen:false
