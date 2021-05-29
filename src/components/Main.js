@@ -129,6 +129,7 @@ class Main extends Component {
         settingOpen:false,
         snackOpen:false,
         movieDatas: [],
+        userReportMap: new Map(),
         onWhiteList: false,
         blockPower:"1",
         snackText:''
@@ -307,8 +308,13 @@ class Main extends Component {
                 trimData.actor.push([s.staffNm, roles]);
             }
         }
-        
         let newDatas = this.state.movieDatas.concat(trimData);
+        let userReport = [];
+        for (let n of this.state.userReportMap) {
+            let spoConfirm = window.confirm(n);
+            userReport.push([n, spoConfirm]);
+        }
+        console.log(userReport);
         this.setState({
             movieDatas: newDatas,
             snackOpen:true,
@@ -317,7 +323,11 @@ class Main extends Component {
         chrome.runtime.sendMessage({
             message: 'setMovieData',
             movieData: newDatas,
+            userReport: userReport,
             add: true
+        });
+        this.setState({
+            userReport: []
         });
         this.handleSearchClose();
     }
@@ -359,6 +369,12 @@ class Main extends Component {
                 }
             });
 
+    }
+
+    handleReportClose = () => {
+        this.setState({
+            reportOpen: false
+        })
     }
 
     handleSettingClose = () => {

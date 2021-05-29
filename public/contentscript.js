@@ -16,6 +16,7 @@ shouldReplaceText = function (node,text) {
     var actorSpoiler = false;
     var directorSpoiler = false;
     var isSpoiler = false;
+    var presentTitle = "";
     if (text.indexOf("http") == 0)
         return false;
     text = text.replaceAll('↵', "").trim();
@@ -50,6 +51,29 @@ shouldReplaceText = function (node,text) {
             }
             replacedText = replacedText.replaceAll(director, "감독")
         }
+
+    }
+    if (blockPower == "1") {
+        if (actorSpoiler || titleSpoiler || directorSpoiler) {
+            nodeMap.set(nodeCount, node);
+            chrome.runtime.sendMessage({
+                message: 'nlpCheck',
+                title: presentTitle,
+                data: replacedText,
+                originData: text,
+                nodeNum: nodeCount
+            });
+            nodeCount++;
+        }
+    }
+    else if (blockPower == "2") {
+        if (titleSpoiler) {
+            isSpoiler = true;
+        }
+    }
+    else if (blockPower == "3") {
+        if (actorSpoiler || directorSpoiler || titleSpoiler)
+            isSpoiler = true;
     }
     if (blockPower == "1") {
         if (actorSpoiler || titleSpoiler || directorSpoiler) {
@@ -73,7 +97,6 @@ shouldReplaceText = function (node,text) {
         if (actorSpoiler || directorSpoiler || titleSpoiler)
             isSpoiler = true;
     }
-
 
     
     return [isSpoiler, replacedText];
@@ -304,7 +327,6 @@ function spoilerPopUp(text,maskedText) {
         }
     )
 }
-
 ///start를 가려야할때 적절히 가릴 상위의 노드를 찾음
 findTargetParent = function (start) {
     let cur = start;
@@ -358,7 +380,6 @@ AttachBlockObserver = function () {
         //...
     });
 }
-
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     if (request.message === 'getMovieDataReply') {
