@@ -1,6 +1,6 @@
 {
-  "name": "스포노노",
-  "version": "0.0.0.3",
+  "name": "스포노노 - AI 스포일러 차단",
+  "version": "1.0.0.3",
   "description": "영화 스포일러 차단",
   "manifest_version": 2,
   "browser_action": {
@@ -17,7 +17,7 @@
     {
       "matches": [ "<all_urls>" ],
       "all_frames": true,
-      "js": [ "sweetalert.min.js","contentscript.js","fuse.js"],
+      "js": [ "sweetalert.min.js","contentscript.js"],
       "css":["style.css"]
     }
   ],
@@ -25,6 +25,7 @@
     "data/wordindex.json"
 ],
 "icons": {
+    "16": "images/contextMenu.png",
     "128": "images/icon_green16.png"
   },
   "permissions": ["storage","tabs","<all_urls>","contextMenus"],

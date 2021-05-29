@@ -23,30 +23,31 @@ shouldReplaceText = function (node,text) {
     if (text.length == 0)
         return false;
     text = text.replaceAll("\n", " ");
+    let targetTitle;
     var replacedText = text;
     //there is no letter or number in the text
     for (let movie of movieData) {
         //keyword exact math
         //title
         for (let title of movie.title) {
-            if (replacedText.indexOf(title) != -1) {
-                titleSpoiler = true;
-                presentTitle = title;
+            if (replacedText.indexOf(title) != -1){
+                titleSpoiler=true;
+                targetTitle = movie.title;
             }
             replacedText = replacedText.replaceAll(title, "타이틀")
         }
         //actor
         for (let actor of movie.actor) {
-            if (replacedText.indexOf(actor) != -1) {
+            if (replacedText.indexOf(actor) != -1){
                 actorSpoiler = true;
-                presentTitle = movie.title[0];
+                targetTitle = movie.title;
             }
             replacedText = replacedText.replaceAll(actor, "배우")
         }
         for (let director of movie.director) {
-            if (replacedText.indexOf(director) != -1) {
+            if (replacedText.indexOf(director) != -1){
                 directorSpoiler = true;
-                presentTitle = movie.title[0];
+                targetTitle = movie.title;
             }
             replacedText = replacedText.replaceAll(director, "감독")
         }
@@ -74,7 +75,28 @@ shouldReplaceText = function (node,text) {
         if (actorSpoiler || directorSpoiler || titleSpoiler)
             isSpoiler = true;
     }
-
+    if (blockPower == "1") {
+        if (actorSpoiler || titleSpoiler || directorSpoiler) {
+            nodeMap.set(nodeCount, node);
+            chrome.runtime.sendMessage({
+                message: 'nlpCheck',
+                title:targetTitle,
+                data: replacedText,
+                originData: text,
+                nodeNum: nodeCount
+            });
+            nodeCount++;
+        }
+    }
+    else if (blockPower == "2") {
+        if (titleSpoiler) {
+            isSpoiler = true;
+        }
+    }
+    else if (blockPower == "3") {
+        if (actorSpoiler || directorSpoiler || titleSpoiler)
+            isSpoiler = true;
+    }
 
     
     return [isSpoiler, replacedText];
@@ -380,12 +402,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
+        //console.log(request.originData);
+        //console.log(request.isSpoiler);
         if (request.isSpoiler) {
             if (node != undefined) {
                 console.log(Date.now() - startTime);
-                blurBlock(node, request.originData, request.data);
+                blurBlock(node,request.originData,request.data);
             }
-        }         
+
+        }
     }
     if (request.message == 'spoilerReportPopup') {
         spoilerPopUp(request.data,maskToMovieInfo(request.data));
