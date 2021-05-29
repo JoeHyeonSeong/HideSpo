@@ -130,6 +130,7 @@ class Main extends Component {
         snackOpen:false,
         movieDatas: [],
         onWhiteList: false,
+        onAkplenono: false,
         blockPower:"1",
         snackText:''
     }
@@ -140,10 +141,13 @@ class Main extends Component {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.message === "whiteList") {
                 this.setState({ onWhiteList: request.onWhiteList });
+            } else if (request.message === "akplenono") {
+                this.setState({ onAkplenono: request.onAkplenono });
             } else if (request.message === "getMovieDataReply") {
                 this.setState({
                     movieDatas: request.movieData,
                     blockPower: request.blockPower,
+                    onAkplenono: request.onAkplenono
                 });
             } 
         });
@@ -157,6 +161,9 @@ class Main extends Component {
                 chrome.runtime.sendMessage({
                     message: 'whiteListCheck',
                     url: url
+                });
+                chrome.runtime.sendMessage({
+                    message: 'akplenonoCheck'
                 });
             });
     }
@@ -260,7 +267,7 @@ class Main extends Component {
                         className={classes.fullButton}
                         color="primary"
                         onClick={this.toggleWhiteList}
-                    >
+                        >
                         {this.state.onWhiteList ? '이 사이트에서 사용' : '이 사이트에서 사용 중지'}
                     </Button>
                     <Snackbar
@@ -273,6 +280,14 @@ class Main extends Component {
                         onClose={this.handleSnackClose}
                         message={this.state.snackText}
                     />
+                    <Button
+                        variant="contained"
+                        className={classes.fullButton}
+                        color="primary"
+                        onClick={this.toggleAkplenono}
+                    >
+                        {this.state.onAkplenono ? '악플노노 적용 중지' : '악플노노 적용'}
+                    </Button>
                 </Paper>
             </ThemeProvider>
 
@@ -325,7 +340,7 @@ class Main extends Component {
     deleteMovie = (value) => {
         const { movieDatas } = this.state;
         let newDatas = movieDatas.filter(info => info.title !== value.title);
-
+        
         this.setState({
             movieDatas: newDatas,
             snackOpen:true,
@@ -359,6 +374,22 @@ class Main extends Component {
                 }
             });
 
+    }
+    toggleAkplenono = () => {
+        chrome.tabs.executeScript(
+            { code: "document.domain" },
+            (results) => {
+                if (this.state.onAkplenono) {
+                    chrome.runtime.sendMessage({
+                        message: 'akplenonoDelete'
+                    });
+                }
+                else {
+                    chrome.runtime.sendMessage({
+                        message: 'akplenonoAdd'
+                    });
+                }
+            });
     }
 
     handleSettingClose = () => {
@@ -396,7 +427,7 @@ class Main extends Component {
             this.handleSearchClickOpen();
         }
     }
-    
+
     handleSnackClose=()=>{
         this.setState({
             snackOpen:false

@@ -2,8 +2,11 @@ var movieData;
 var blockPower = -1;
 var nodeMap = new Map();
 var nodeCount = 0;
+var nodeMapForAkple = new Map();
+var nodeCountForAkple = 0;
 let attachObserver=false;
 let cutLen=70;
+let onAkplenono = false
 
 String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
@@ -78,6 +81,25 @@ shouldReplaceText = function (node,text) {
     
     return [isSpoiler, replacedText];
 }
+shouldReplaceTextForAkplenono = function (node, text) {
+    if (text.indexOf("http") == 0)
+        return false;
+    text = text.replaceAll('↵', "").trim();
+    if (text.length == 0)
+        return false;
+    text = text.replaceAll("\n", " ");
+    var replacedText = text;
+
+    if (onAkplenono) {
+        nodeMapForAkple.set(nodeCountForAkple, node.parentNode);
+        chrome.runtime.sendMessage({
+            message: 'akplenonoNLPCheck',
+            data: replacedText,
+            nodeNum: nodeCountForAkple
+        });
+        nodeCountForAkple++
+    }
+}
 
 maskToMovieInfo=function(text){
     text = text.replaceAll("\n", " ");
@@ -125,7 +147,8 @@ spoCheck = function (node) {
         text = text.replace(/\u200B/g, '');
         if (text.length == 0)
             fontSize = 0;
-        else{
+        else {
+            shouldReplaceTextForAkplenono(node, text);
             try {
                 fontSize = window.getComputedStyle(node.parentElement).fontSize;
             }
@@ -376,8 +399,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     if (request.message === "whiteList") {
         if (!request.onWhiteList) {
-            AttachBlockObserver();
+            //AttachBlockObserver();
         }
+    }
+    if (request.message === "akplenono") {
+        
+        onAkplenono = request.onAkplenono;
+        console.log(request.onAkplenono);
+        AttachBlockObserver();
+        
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
@@ -388,7 +418,20 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 console.log(Date.now() - startTime);
                 blurBlock(node,request.originData,request.data);
             }
-
+        }
+    }
+    if (request.message == 'akplenonoReply') {
+        let node = nodeMapForAkple.get(request.nodeNum);
+        //console.log(request.title);
+        //console.log(node);
+        if (!request.isAkple) {
+            if (node != undefined) {
+                console.log(Date.now() - startTime);
+                if (node.isBlurred == undefined) {
+                    node.isBlurred = true;
+                    node.style.filter = "blur(6px)";
+                }
+            }
         }
     }
     if (request.message == 'spoilerReportPopup') {
@@ -405,6 +448,9 @@ chrome.runtime.sendMessage({
 ///백그라운드에 화이트리스트 데이터 요청
 chrome.runtime.sendMessage({
     message: 'whiteListCheck_content'
+});
+chrome.runtime.sendMessage({
+    message: 'akplenonoCheck_content'
 });
 startTime=Date.now();
 //console.log("cur");

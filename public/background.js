@@ -9,15 +9,18 @@ let blockPower;
 let serverUrl="http://158.247.209.101:5000";
 let nlpCheckMap=new Map();
 let nlpCheckSendSet=new Set();
+let akplenono;
+let nlpCheckMapForAkple = new Map();
 
 try {
-    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower','questions_spoiler','questions_noSpoiler'],
+    chrome.storage.sync.get(['whiteList', 'movieDatas', 'blockPower','questions_spoiler','questions_noSpoiler','akplenono'],
         items => {
             whiteList = (typeof items.whiteList == "undefined") ? [] : items.whiteList;
             movieData = (typeof items.movieDatas == "undefined") ? [] : items.movieDatas;
             blockPower = (typeof items.blockPower == "undefined") ? 1 : items.blockPower;
             questions_spoiler = (typeof items.questions_spoiler == "undefined") ? [] : items.questions_spoiler;
             questions_noSpoiler = (typeof items.questions_noSpoiler == "undefined") ? [] : items.questions_noSpoiler;
+            akplenono = (typeof items.akplenono == "undefined") ? false : items.akplenono;
             console.log(items);
         });
 }
@@ -78,16 +81,29 @@ chrome.contextMenus.create({
 
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     if (request.message === "whiteListAdd") {
-        let url = request.url;
+       let url = request.url;
         addWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
     }
     else if (request.message === "whiteListDelete") {
-        let url = request.url;
+       let url = request.url;
         deleteWhiteList(url);
         sendWhiteList_popup(url);
         sendWhiteList_content();
+    } else if (request.message === "akplenonoAdd") {
+        setAkplenono(true);
+        sendAkplenono_popup();
+        sendAkplenono_content();
+    } else if (request.message === "akplenonoDelete") {
+        setAkplenono(false);
+        sendAkplenono_popup();
+        sendAkplenono_content();
+    } else if (request.message === "akplenonoCheck") {
+        sendAkplenono_popup();
+    } else if (request.message === "akplenonoCheck_content") {
+        sendAkplenono_content();
+    
     }
     else if (request.message === "whiteListCheck") {
         let url = request.url;
@@ -111,6 +127,8 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     } else if (request.message === 'nlpCheck') {
         spoilerCheck(request,sender.tab.id);
 
+    } else if (request.message === 'akplenonoNLPCheck') {
+        akpleCheck(request, sender.tab.id);
     } else if (request.message === 'wordExist') {
         chrome.runtime.sendMessage({
             message: 'wordExistReply',
@@ -187,6 +205,15 @@ function sendNlpReply(tabId, isSpoiler, nodeNum, data, originData) {
             originData: originData
         });
 }
+function sendNlpReplyForAkple(tabId, isAkple, nodeNum, data) {
+    chrome.tabs.sendMessage(tabId,
+        {
+            message: 'akplenonoReply',
+            isAkple: isAkple,
+            nodeNum: nodeNum,
+            data: data
+        });
+}
 
 function trimRole(newData) {
     console.log(newData)
@@ -225,8 +252,8 @@ function insertKeyword(list, keyword) {
         list.push(trimmed);
 }
 
-function sendWhiteList_content() {
-    
+function sendWhiteList_content() {  
+
     chrome.tabs.query({ active: true }, function (tabs) {
         for(tab of tabs){
             let url=trimUrl(tab.url);
@@ -238,8 +265,6 @@ function sendWhiteList_content() {
             iconCheck(url)
         }
     });
-
-    
 }
 
 function sendWhiteList_popup(trimUrl) {
@@ -297,6 +322,30 @@ function deleteWhiteList(url) {
     iconCheck(url);
 }
 
+function sendAkplenono_content() {
+    console.log(akplenono)
+    chrome.tabs.query({ active: true }, function (tabs) {
+        for (tab of tabs) {
+            chrome.tabs.sendMessage(tab.id,
+                {
+                    message: 'akplenono',
+                    onAkplenono: akplenono
+                });
+        }
+    });
+}
+function sendAkplenono_popup() {
+    chrome.runtime.sendMessage({
+        message: 'akplenono',
+        onAkplenono: akplenono
+    });
+}
+
+function setAkplenono(bool) {
+    akplenono = bool;
+    chrome.storage.sync.set({ 'akplenono': akplenono });
+}
+
 function trimUrl(url) {
     let i = 0;
     let cnt = 0;
@@ -327,7 +376,7 @@ async function spoilerCheck(request,tabId) {
     let result;
     if (nlpCheckMap.has(request.data)) {//캐시에 있음
         result = nlpCheckMap.get(request.data);
-        sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);
+        sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);      
     }
     else if (!nlpCheckSendSet.has(request.data)){//서버에 이걸 보내지 않았으면 서버에서 호출
         nlpCheckSendSet.add(request.data);//서버에 보냈다고 체크
@@ -345,9 +394,36 @@ async function spoilerCheck(request,tabId) {
             sendNlpReply(tabId, result, request.nodeNum, request.data, request.originData);
             addQuestion(result, request.originData,request.data, request.title);
         })
+        .catch(error => console.log("server not response..."));
+    }
+}
+async function akpleCheck(request, tabId) {
+    console.log(request);
+    let result;
+    if (nlpCheckMapForAkple.has(request.data)) {//캐시에 있음
+        result = nlpCheckMapForAkple.get(request.data);
+        sendNlpReplyForAkple(tabId, result, request.nodeNum, request.data);
+    }
+    else if (!nlpCheckSendSet.has(request.data)) {//서버에 이걸 보내지 않았으면 서버에서 호출
+        nlpCheckSendSet.add(request.data);//서버에 보냈다고 체크
+        let requestUrl = serverUrl + "/swearPredict"
+        let data = { contents: request.data }
+
+        fetch(requestUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json())
+            .then(function (response) {
+                let result = response['output'];
+                nlpCheckMapForAkple.set(request.data, result);
+                console.log(result);
+                sendNlpReplyForAkple(tabId, result, request.nodeNum, request.data);
+            })
             .catch(error => console.log("server not response..."));
     }
 }
+
 
 async function report(str, isSpoiler) {
     //question에 있으면 지우기
