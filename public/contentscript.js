@@ -5,8 +5,9 @@ var nodeCount = 0;
 var nodeMapForAkple = new Map();
 var nodeCountForAkple = 0;
 let attachObserver=false;
-let cutLen=70;
-let onAkplenono = false
+let cutLen = 70;
+let onAkplenono;
+let onWhiteList;
 
 String.prototype.replaceAll = function (org, dest) {
     return this.split(org).join(dest);
@@ -129,7 +130,7 @@ spoCheck = function (node) {
     let allText=true;
     let text=node.textContent;
     let borderWidth = "0px";
-    if (movieData.length <= 0)
+    if (movieData.length <= 0 && onAkplenono == false)
         return 0;
     //NOTE: when loading, the first time the node is null when we call this from browser.tabs.onUpdated.addListener
     if (!node) {
@@ -295,6 +296,48 @@ openBlurred = function (event, node) {
     )
 }
 
+blurBlockforAkple = function (node) {
+    if (node.parentElement.className == "swal-text")
+        return;
+    node = findTargetParent(node);
+    let blurText = "blur(6px)";
+    if (node.isBlurred == undefined) {
+        node.isBlurred = true;
+        node.style.background = 'black';
+        node.style.filter = blurText;
+        node.addEventListener("click", clickEventWrapperforAkple, false);
+    }
+}
+
+clickEventWrapperforAkple = function (event) {
+    openBlurredforAkple(event, event.currentTarget);
+}
+
+///블러 해제할지 팝업창
+openBlurredforAkple = function (event, node) {
+    event.preventDefault();
+    event.stopPropagation();
+    //let removeBlur=confirm("스포일러일 가능성이 있습니다.\n정말 차단을 해제하시겠습니까?");
+    swal({
+        title: "정말 차단을 해제하시겠습니까?",
+        text: "욕설이 포함되어있는 문구입니다.",
+        buttons: {
+            yes: { text: "확인", value: true },
+            cancelButton: { text: "취소", value: false },
+        },
+        icon: "warning",
+    }).then(
+        (value) => {
+            if (value) {
+
+                node.style.filter = "";
+                node.style.background = '';
+                node.removeEventListener("click", clickEventWrapper, false);
+            }
+        }
+    )
+}
+
 ///스포일러가 포함되어있는지 팝업창으로 물어봄
 ///text는 보여질 데이터
 ///maskedText는 서버에 전송할 데이터
@@ -361,7 +404,7 @@ AttachBlockObserver = function () {
     if(attachObserver)
         return;
     attachObserver=true;
-    if (movieData ==undefined)
+    if (movieData == undefined || onAkplenono == undefined)
         return;
     spoCheck(document.body);
     
@@ -398,6 +441,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
 
     if (request.message === "whiteList") {
+        onWhiteList = request.onWhiteList
         if (!request.onWhiteList) {
             //AttachBlockObserver();
         }
@@ -406,13 +450,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         
         onAkplenono = request.onAkplenono;
         console.log(request.onAkplenono);
-        AttachBlockObserver();
+        if (!onWhiteList) {
+            AttachBlockObserver();
+        }
         
     }
     if (request.message == 'nlpReply') {
         let node = nodeMap.get(request.nodeNum);
-        //console.log(request.originData);
-        //console.log(request.isSpoiler);
         if (request.isSpoiler) {
             if (node != undefined) {
                 console.log(Date.now() - startTime);
@@ -427,10 +471,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (!request.isAkple) {
             if (node != undefined) {
                 console.log(Date.now() - startTime);
-                if (node.isBlurred == undefined) {
-                    node.isBlurred = true;
-                    node.style.filter = "blur(6px)";
-                }
+                blurBlockforAkple(node)
             }
         }
     }
