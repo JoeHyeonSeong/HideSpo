@@ -100,17 +100,8 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         let newData = request.movieData;
         if (request.add) {
             newData = trimRole(newData);
-            for (const [i, v] of request.userReport.entries()) {
-                report(i, v);
-            }
-            userReportMap = [];
-        } else {
-            addDataToMap(request.deletedMovie);
         }
         movieData = newData;
-        chrome.storage.sync.set({ 'isSpoilerSet': isSpoilerSet });
-        chrome.storage.sync.set({ 'noSpoilerSet': noSpoilerSet });
-        chrome.storage.sync.set({ 'userReportMap': userReportMap });
         chrome.storage.sync.set({ 'movieDatas': movieData });
         updateContentScript();
     } else if (request.message === 'blockPowerChange') {
@@ -197,7 +188,6 @@ function sendNlpReply(tabId, isSpoiler, nodeNum, data, originData) {
         });
 }
 
-
 function trimRole(newData) {
     console.log(newData)
     let movie = newData[newData.length - 1];
@@ -235,7 +225,8 @@ function insertKeyword(list, keyword) {
         list.push(trimmed);
 }
 
-function sendWhiteList_content() {    
+function sendWhiteList_content() {
+    
     chrome.tabs.query({ active: true }, function (tabs) {
         for(tab of tabs){
             let url=trimUrl(tab.url);
@@ -247,6 +238,8 @@ function sendWhiteList_content() {
             iconCheck(url)
         }
     });
+
+    
 }
 
 function sendWhiteList_popup(trimUrl) {
@@ -257,12 +250,10 @@ function sendWhiteList_popup(trimUrl) {
 }
 
 function updateContentScript() {
-    console.log(userReportMap);
     chrome.runtime.sendMessage({
         message: 'getMovieDataReply',
         movieData: movieData,
-        blockPower: blockPower,
-        userReportMap: userReportMap
+        blockPower: blockPower
     });
     chrome.tabs.query({ active: true }, function (tabs) {
         for(let tab of tabs){
