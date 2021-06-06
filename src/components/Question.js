@@ -76,6 +76,7 @@ class Question extends Component {
     }
 
     setIndex(index) {
+        console.log(this.state.text);
         this.setState(
             {
                 index:index,
@@ -113,7 +114,7 @@ class Question extends Component {
                     elevation={0}
                     className={classes.textArea}
                     >
-                    {(this.state.text < this.textThreshold) ? this.state.text : this.state.text.substring(0, this.textThreshold) + "..."}
+                    {(this.state.text.length < this.textThreshold) ? this.state.text : this.state.text.substring(0, this.textThreshold) + "..."}
                     </Paper>
                     <Button
                     onClick={()=>{this.answer(true)}}
